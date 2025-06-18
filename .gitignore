@@ -1,0 +1,11 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django migrations
+**/migrations/
+!*/migrations/__init__.py  # Optional: keep init so Django still sees the module
+
+# Media files (uploads, images, etc.)
+media/

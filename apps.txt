@@ -1,0 +1,76 @@
+Django Project App Structure
+============================
+
+1. users
+--------
+Handles authentication and user profiles, including different user roles such as:
+- Clients (patients)
+- Pharmacists
+- Admins
+
+Models:
+- User (custom)
+- Client (OneToOne → User)
+- Pharmacist (OneToOne → User)
+
+
+2. medical_stores
+-----------------
+Manages medical store data and their ownership by pharmacists.
+
+Models:
+- MedicalStore
+- (Optional) StoreLicense
+
+
+3. inventory
+------------
+Handles product listings such as medicines and medical devices.
+
+Models:
+- Medicine
+- MedicalDevice
+
+
+4. orders
+---------
+Handles shopping cart logic and order tracking.
+
+Models:
+- Cart
+- Order
+- (Items are usually stored as JSON fields inside cart/order)
+
+
+5. payments
+-----------
+Manages payments related to orders.
+
+Models:
+- Payment
+
+
+6. reviews
+----------
+Stores client reviews and ratings on medical stores or items.
+
+Models:
+- Review
+
+
+7. notifications
+----------------
+Handles notifications and reminders for users.
+
+Models:
+- Notification
+
+
+8. core
+-------
+Contains shared utilities, constants, enums, abstract base models, and reusable logic.
+
+Modules:
+- Base models
+- Shared fields or mixins
+- Custom validators, enums, etc.
