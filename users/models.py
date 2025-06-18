@@ -33,24 +33,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)  # Required for admin access
-    
+    # this is for django admin and auth
     role = models.CharField(max_length=10, choices=[
         ('guest', 'Guest'),('client', 'Client'),
         ('pharmacist', 'Pharmacist'),('admin', 'Admin')
     ], default='guest')
 
     # use email as username
-    username = None  # rm username
+    username = None  # rm username 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
 
+    email_verification_token = models.CharField(max_length=100, blank=True, null=True)
     objects = UserManager()
 
     # [SENU]: adding the group and the permsision by this way reduce the performance of fetching the users
 
     # printing--------------------------------------------
     def __str__(self):
-        return f"Doctor: {self.name} - email: {self.email}"
+        return f"Name: {self.name} - email: {self.email}"
 
 # CLIENT MODEL==========================================================
 
@@ -70,6 +71,8 @@ class Client(models.Model):
     # optionals
     info_disease = models.TextField(null=True, blank=True)
     is_verified_purchase = models.BooleanField(default=False)
+    def __str__(self):
+        return self.user.name
 
 # PHARMACIST MODEL======================================================
 
@@ -84,6 +87,8 @@ class Pharmacist(models.Model):
     # for performance + for prevent non-licensed pharmacist
     medical_stores_ids = models.JSONField(default=list)
     is_approved = models.BooleanField(default=False)
+    def __str__(self):
+        return self.user.name
 
 # NOTE =========================
 '''

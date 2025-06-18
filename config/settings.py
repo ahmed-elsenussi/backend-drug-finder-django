@@ -34,7 +34,11 @@ INSTALLED_APPS = [
 
     # [SENU]: tools
     'rest_framework',
-
+    'django_extensions',
+    # [AMS] Middlewares apps 
+    'rest_framework_simplejwt',
+    
+    
     # [AMS] APPS WE CREATE 
     'users',
     'medical_stores',
@@ -62,14 +66,33 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'config.urls'
+# ============================[AMS]-> Settings related to auth =========================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    }
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'jwt-auth',
+    'TOKEN_MODEL': None,  
+}
+AUTHENTICATION_BACKENDS = (
+    
+    # 'social_core.backends.google.GoogleOAuth2',  # For Google OAuth
+    'django.contrib.auth.backends.ModelBackend',
+    # 'allauth.account.auth_backends.AuthenticationBackend',
+)
+SITE_ID = 1 
+# =========================================================
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
@@ -97,8 +120,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -151,3 +172,24 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # [SENU]: FOR AUTH
 AUTH_USER_MODEL = 'users.User'
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  # Access token valid for 7 days
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Refresh token valid for 30 days
+#     'ROTATE_REFRESH_TOKENS': True,  # Rotate refresh tokens
+#     'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens after rotation
+# }
+
+
+
+#[AMS] Email settings =========================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'amhmdslah104@gmail.com'
+EMAIL_HOST_PASSWORD = 'qgsy guda swgz vckf'
+DEFAULT_FROM_EMAIL = 'amhmdslah104@gmail.com'  # Add this
+SERVER_EMAIL = 'amhmdslah104@gmail.com'  # For error emails
+SITE_NAME = "Drug Finder"
+SITE_URL= "http://localhost:8000/"
+# ==============================================

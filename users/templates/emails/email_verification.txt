@@ -1,0 +1,14 @@
+Verify Your Email Address
+
+Hello {{ user.first_name }},
+
+Thank you for signing up! Please verify your email address by clicking the link below:
+
+{{ verification_link }}
+
+If you didn't create an account with us, please ignore this email.
+
+---
+© {% now "Y" %} Drug Finder . All rights reserved.
+Privacy Policy: https://yourwebsite.com/privacy
+Terms of Service: https://yourwebsite.com/terms
