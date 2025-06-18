@@ -20,6 +20,10 @@ class MedicalStore(models.Model):
     
     license_image = models.ImageField(upload_to='store/licenses/')
     license_expiry_date = models.DateField()
+        # [OKS] add lang and lat for the store
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
 
     # optionals
     store_logo = models.ImageField(upload_to='store/logos/', null=True, blank=True)
