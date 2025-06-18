@@ -20,9 +20,6 @@ class MedicalStore(models.Model):
     
     license_image = models.ImageField(upload_to='store/licenses/')
     license_expiry_date = models.DateField()
-        # [OKS] add lang and lat for the store
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
 
 
     # optionals
@@ -34,8 +31,13 @@ class MedicalStore(models.Model):
     # relational fields: to get the medicines and devices
     medicines = models.ManyToManyField(Medicine, blank=True)
     devices = models.ManyToManyField(MedicalDevice, blank=True)
+   
 
+       # [OKS] add lang and lat for the store
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     # --print---------
+
     def __str__(self):
         return f"{self.store_name} ({self.store_type})"
 
