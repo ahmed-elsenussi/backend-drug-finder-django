@@ -1,5 +1,6 @@
 from django.db import models
 from users.models import Client
+from medical_stores.models import MedicalStore
 
 
 # CART MODEL=================================================================
@@ -23,6 +24,8 @@ class Order(models.Model):
 
     # FK: client id
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    # [SARA]: Add store_id referencing MedicalStore
+    store = models.ForeignKey(MedicalStore, on_delete=models.CASCADE, null=True, blank=True)
 
     # array of objects {item_id, ordered_quantity}
     items = models.JSONField(default=list)

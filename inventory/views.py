@@ -9,6 +9,7 @@ class MedicalDeviceViewSet(viewsets.ModelViewSet):
     serializer_class = MedicalDeviceSerializer
     permission_classes = [IsAuthenticated, IsPharmacistOwnerOrAdmin]
 
+    # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
         # [SARA]: Admin can see all, pharmacist sees own, client sees all (read-only)
