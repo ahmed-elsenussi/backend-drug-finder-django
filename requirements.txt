@@ -13,9 +13,6 @@ django-filter==25.1
 django-jazzmin==3.0.1
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
-pillow==11.2.1
-psycopg2-binary==2.9.10
-PyJWT==2.9.0
 idna==3.10
 oauthlib==3.2.2
 pillow==11.2.1
