@@ -32,13 +32,12 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
 
-     #[OKS] cors
-    'corsheaders',
     # [SENU]: tools
     'rest_framework',
     'django_extensions',
     # [AMS] Middlewares apps 
     'rest_framework_simplejwt',
+    'corsheaders', 
     
     
     # [AMS] APPS WE CREATE 
@@ -63,6 +62,8 @@ MIDDLEWARE = [
     # [OKS] cors
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -70,6 +71,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  #[AMS] React default port
+    
+]
+CORS_ALLOW_CREDENTIALS = True
 ROOT_URLCONF = 'config.urls'
 # ============================[AMS]-> Settings related to auth =========================
 REST_FRAMEWORK = {
