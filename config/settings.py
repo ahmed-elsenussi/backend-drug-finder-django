@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django_extensions',
     # [AMS] Middlewares apps 
     'rest_framework_simplejwt',
-    
+   
     
     # [AMS] APPS WE CREATE 
     'users',
@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'payments',
     'reviews',
     'notifications',
-
+    'cart',
+    'corsheaders',
     # default
     'django.contrib.admin',
     'django.contrib.auth',
@@ -65,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     "corsheaders.middleware.CorsMiddleware",
 ]
 ROOT_URLCONF = 'config.urls'
 # ============================[AMS]-> Settings related to auth =========================
@@ -150,7 +152,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
