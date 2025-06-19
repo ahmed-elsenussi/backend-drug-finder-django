@@ -1,6 +1,5 @@
 from django.db import models
 from users.models import Pharmacist
-from inventory.models import MedicalDevice, Medicine
 
 #  MEDICAL STORES MODEL
 class MedicalStore(models.Model):
@@ -21,17 +20,21 @@ class MedicalStore(models.Model):
     license_image = models.ImageField(upload_to='store/licenses/')
     license_expiry_date = models.DateField()
 
+
     # optionals
     store_logo = models.ImageField(upload_to='store/logos/', null=True, blank=True)
     store_banner = models.ImageField(upload_to='store/banners/', null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
+    # [SARA]: Removed ManyToMany fields for medicines and devices, as each product instance is unique to a store
+    # medicines = models.ManyToManyField(Medicine, blank=True)
+    # devices = models.ManyToManyField(MedicalDevice, blank=True)
 
-    # relational fields: to get the medicines and devices
-    medicines = models.ManyToManyField(Medicine, blank=True)
-    devices = models.ManyToManyField(MedicalDevice, blank=True)
-
+       # [OKS] add lang and lat for the store
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     # --print---------
+
     def __str__(self):
         return f"{self.store_name} ({self.store_type})"
 

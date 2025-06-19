@@ -1,11 +1,14 @@
 # users/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet,CustomTokenObtainPairView,verify_email#,forget_password,validate_reset_password
+from .views import UserViewSet,CustomTokenObtainPairView,verify_email, PharmacistViewSet, ClientViewSet#,forget_password,validate_reset_password
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView 
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
 
 router = DefaultRouter()
-router.register(r'', UserViewSet, basename='user')
+router.register(r'users', UserViewSet, basename='user')
+router.register(r'pharmacists', PharmacistViewSet, basename='pharmacist')
+router.register(r'clients', ClientViewSet, basename='client')
 
 urlpatterns =[
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
