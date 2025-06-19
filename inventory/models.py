@@ -1,4 +1,5 @@
 from django.db import models
+from medical_stores.models import MedicalStore
 
 # MEDICINE MODEL===========
 class Medicine(models.Model):
@@ -18,6 +19,10 @@ class Medicine(models.Model):
     # alternatives for the medicines
     alternative_medicines = models.ManyToManyField('self', blank=True)
 
+    # [SARA]: Added price and store ForeignKey to MedicalStore for unique inventory per store
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    store = models.ForeignKey(MedicalStore, on_delete=models.CASCADE, null=True, blank=True)
+
 
 
 # MEDICAL DEVICES================
@@ -29,3 +34,7 @@ class MedicalDevice(models.Model):
     manufacturer = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    # [SARA]: Added price and store ForeignKey to MedicalStore for unique inventory per store
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    store = models.ForeignKey(MedicalStore, on_delete=models.CASCADE, null=True, blank=True)
