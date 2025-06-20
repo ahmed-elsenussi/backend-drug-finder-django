@@ -17,17 +17,18 @@ class UserViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         #         ('guest', 'Guest'),('client', 'Client'),
         # ('pharmacist', 'Pharmacist'),('admin', 'Admin')
+        print(request.data)
         with transaction.atomic(): 
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
             role = request.data.get('role', 'client')
-            
             if role == 'pharmacist':
                 image_profile = request.FILES.get('image_profile')
                 image_license = request.FILES.get('image_license')
                 if not image_license :
                     user.delete()  # Rollback user creation
+                    print ('no image_license')
                     return Response(
                         {
                             'error':'you must upload license Image'
