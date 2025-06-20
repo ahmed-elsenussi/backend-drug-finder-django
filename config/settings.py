@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'reviews',
     'notifications',
     'cart',
-    'corsheaders',
     # default
     'django.contrib.admin',
     'django.contrib.auth',
