@@ -1,16 +1,14 @@
 from django.db import models
-
-# Create your models here.
-from django.contrib.postgres.fields import JSONField  # or use models.JSONField in Django 3.1+
+from django.contrib.postgres.fields import JSONField  # Use this for PostgreSQL
+from django.conf import settings
 
 class Cart(models.Model):
-    items = models.JSONField(default=list)  # [{item_id, quantity, price}, ...]
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart')
+    items = models.JSONField(default=list)  # Array of {item_id, quantity, price, etc.}
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Cart #{self.id}"
-
-
+        return f"Cart {self.id} - Total: {self.total_price}"

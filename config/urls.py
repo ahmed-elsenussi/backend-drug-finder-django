@@ -15,7 +15,7 @@ urlpatterns = [
 
     # Orders and Cart 
     path('orders/', include(order_router.urls)),
-    path('cart/', include(cart_router.urls)),
+    path('cart/', include('cart.urls')),
 
     # Additional APIs
     path('reviews/', include('reviews.urls')),
