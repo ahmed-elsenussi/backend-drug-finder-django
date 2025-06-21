@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'payments',
     'reviews',
     'notifications',
-
+    'cart',
     # default
     'django.contrib.admin',
     'django.contrib.auth',
@@ -71,6 +71,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     "corsheaders.middleware.CorsMiddleware",
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -176,7 +177,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -218,4 +219,6 @@ DEFAULT_FROM_EMAIL = 'amhmdslah104@gmail.com'  # Add this
 SERVER_EMAIL = 'amhmdslah104@gmail.com'  # For error emails
 SITE_NAME = "Drug Finder"
 SITE_URL= "http://localhost:8000/"
+
+# [OKS] Stripe settings
 # ==============================================
