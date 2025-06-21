@@ -211,4 +211,6 @@ DEFAULT_FROM_EMAIL = 'amhmdslah104@gmail.com'  # Add this
 SERVER_EMAIL = 'amhmdslah104@gmail.com'  # For error emails
 SITE_NAME = "Drug Finder"
 SITE_URL= "http://localhost:8000/"
+
+# [OKS] Stripe settings
 # ==============================================
