@@ -64,6 +64,13 @@ class CartSerializer(serializers.ModelSerializer):
         for new_item in items:
             product_id = new_item.get('product')
             quantity = new_item.get('quantity', 1)
+            # Check if the product belongs to the same store before merging
+            try:
+                medicine = Medicine.objects.get(id=product_id)
+                if medicine.store_id != store_id:
+                    raise ValidationError({'error': f'Product {product_id} does not belong to store {store_id}.'})
+            except Medicine.DoesNotExist:
+                raise ValidationError({'error': f'Product {product_id} does not exist in store {store_id}.'})
             found = False
             for item in updated_items:
                 if item.get('product') == product_id:
