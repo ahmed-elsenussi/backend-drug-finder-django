@@ -207,7 +207,7 @@ AUTH_USER_MODEL = 'users.User'
 # }
 
 
-STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA2mNCExulBiMa14fBNu37diI2p9rOoCTa8owAG00DsytaBMr'
+
 #[AMS] Email settings =========================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
