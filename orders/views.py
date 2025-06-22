@@ -55,7 +55,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         try:
             Cart.objects.get(user=cart_user).delete()
         except Cart.DoesNotExist:
-            pass  # no cart to delete
+            pass  
 
         # [OKS] Create Payment record
         Payment.objects.create(
@@ -130,7 +130,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Special validation for paid status
+        # [OKA] Special validation for paid status
         if new_status == 'paid':
             if order.payment_method != 'card':
                 return Response(
@@ -143,7 +143,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Update status
+        # [OKS] Update status for the order
         order.order_status = new_status
         order.save()
         
