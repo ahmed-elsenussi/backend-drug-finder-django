@@ -1,43 +1,10 @@
 from rest_framework import serializers
 from .models import Cart
 from inventory.models import Medicine
-from rest_framework import status
 from rest_framework.exceptions import ValidationError
-
-class CartItemSerializer(serializers.Serializer):
-    """Nested serializer for cart items with medicine details"""
-    product = serializers.IntegerField()
-    quantity = serializers.IntegerField()
-    price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    medicine_name = serializers.CharField(read_only=True)
-    medicine_image = serializers.ImageField(read_only=True)
-
-    def to_representation(self, instance):
-        # If instance is a dict (from JSON field), fetch medicine details
-        if isinstance(instance, dict):
-            product_id = instance.get('product')
-            try:
-                medicine = Medicine.objects.get(id=product_id)
-                return {
-                    'product': product_id,
-                    'quantity': instance.get('quantity', 1),
-                    'price': instance.get('price', medicine.price),
-                    'medicine_name': medicine.brand_name or medicine.generic_name,
-                    'medicine_image': medicine.image.url if medicine.image else None
-                }
-            except Medicine.DoesNotExist:
-                return {
-                    'product': product_id,
-                    'quantity': instance.get('quantity', 1),
-                    'price': instance.get('price', 0),
-                    'medicine_name': 'Unknown Medicine',
-                    'medicine_image': None
-                }
-        return super().to_representation(instance)
 
 class CartSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    items = CartItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cart
@@ -52,8 +19,10 @@ class CartSerializer(serializers.ModelSerializer):
         items = validated_data.get('items', [])
         store_id = validated_data.get('store')
         force_clear = False
+
         if request:
             force_clear = request.data.get('force_clear', False)
+
         if not store_id:
             if items:
                 try:
@@ -65,10 +34,9 @@ class CartSerializer(serializers.ModelSerializer):
                     raise ValidationError({'error': 'store field is required and could not be inferred from items.'})
             else:
                 raise ValidationError({'error': 'store field is required.'})
-        cart = None
-        if user:
-            cart = Cart.objects.filter(user=user).first()
-        # If cart exists and store is different, require confirmation
+
+        cart = Cart.objects.filter(user=user).first() if user else None
+
         if cart and cart.items:
             existing_store_id = None
             for item in cart.items:
@@ -87,16 +55,15 @@ class CartSerializer(serializers.ModelSerializer):
                         'error': 'Cart contains products from another store. Do you want to clear the cart and add this product?',
                         'requires_confirmation': True
                     })
-                # User confirmed, clear cart
                 cart.items = []
                 cart.total_price = 0
                 cart.save()
-        # Merge items: increase quantity if product exists, else add
+
+        # Merge logic
         updated_items = cart.items.copy() if cart and cart.items else []
         for new_item in items:
             product_id = new_item.get('product')
             quantity = new_item.get('quantity', 1)
-            # Check if the product belongs to the same store before merging
             try:
                 medicine = Medicine.objects.get(id=product_id)
                 if medicine.store_id != store_id:
@@ -111,40 +78,38 @@ class CartSerializer(serializers.ModelSerializer):
                     break
             if not found:
                 updated_items.append(new_item)
-        # Validate and calculate subtotal
+
+        # Final calculation
         subtotal = 0
         checked_items = []
         for item in updated_items:
             product_id = item.get('product')
             quantity = item.get('quantity', 1)
-            # Get medicine details for validation and price
             try:
                 medicine = Medicine.objects.get(id=product_id, store_id=store_id)
             except Medicine.DoesNotExist:
-                raise ValidationError({'error': f'Product {product_id} does not exist in store {store_id}.'})
-            
-            price = float(medicine.price)
+                raise ValidationError({'error': f'Medicine {product_id} not found.'})
             if quantity > medicine.stock:
                 raise ValidationError({
-                    'error': f'Not enough stock for product {product_id}. Available: {medicine.stock}, requested: {quantity}'
+                    'error': f'Not enough stock for product {product_id}.'
                 })
-            subtotal += price * quantity
-            
-            # Store additional medicine details in the item
+            subtotal += float(medicine.price) * quantity
             checked_items.append({
-                **item, 
-                'price': price,
-                'medicine_name': medicine.brand_name or medicine.generic_name,
-                'medicine_image_url': medicine.image.url if medicine.image else None
+                'product': product_id,
+                'name': medicine.brand_name,
+                'image': medicine.image.url if medicine.image else None,
+                'quantity': quantity,
+                'price': float(medicine.price),
             })
-        
+
         validated_data['items'] = checked_items
-        validated_data['total_price'] = subtotal + validated_data.get('shipping_cost', 0) + validated_data.get('tax', 0)
+        validated_data['total_price'] = subtotal + float(validated_data.get('shipping_cost', 0)) + float(validated_data.get('tax', 0))
         validated_data.pop('store', None)
+
         if cart:
-            # Update existing cart
             for attr, value in validated_data.items():
                 setattr(cart, attr, value)
             cart.save()
             return cart
+
         return super().create(validated_data)
