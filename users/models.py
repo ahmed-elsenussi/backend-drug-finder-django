@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.conf import settings
+# from medical_stores.models import MedicalStore  # will be used
 
 # USER MODEL=========================================================
 
@@ -87,6 +88,24 @@ class Pharmacist(models.Model):
     # for performance + for prevent non-licensed pharmacist
     medical_stores_ids = models.JSONField(default=list)
     is_approved = models.BooleanField(default=False)
+
+    # SENU [for single store logic]: 
+    # logic: empty until the admin accept license, then the store will be clickable
+    # and should add the informatoin for the store
+    # single_medical_store_id = models.OneToOneField(MedicalStore, blank=True, null=True)
+
+
+    # [SENU]: add bio for the pharmacist to put on the profile
+    pharmacist_bio = models.TextField(max_length=255, blank=True, null=True, default='pharmacist bio...')
+
+    # [SENU]: add faculty part
+    pharmacist_faculty_logo = models.ImageField(upload_to='pharmacist/faculty_logo/', blank=True, null=True)
+    pharmacist_faculty = models.CharField(max_length=255, blank=True, null=True)
+
+    # [SENU]: add banner for profile
+    pharmacist_banner = models.ImageField(upload_to='pharmacist/banner/', blank=True, null=True)
+
+
     def __str__(self):
         return self.user.name
 
