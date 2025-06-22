@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
 
     # [SENU]: tools
+    'django_filters', # new added
     'rest_framework',
     'django_extensions',
     # [AMS] Middlewares apps 
@@ -86,7 +87,14 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
-    }
+    
+    # [SENU] Add this to enable filters and pagination globally
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10, 
+}
+
+    
 REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'jwt-auth',
@@ -199,7 +207,7 @@ AUTH_USER_MODEL = 'users.User'
 # }
 
 
-
+STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA2mNCExulBiMa14fBNu37diI2p9rOoCTa8owAG00DsytaBMr'
 #[AMS] Email settings =========================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
