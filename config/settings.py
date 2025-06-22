@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'payments',
     'reviews',
     'notifications',
+    'cart',
 
     # default
     'django.contrib.admin',
@@ -213,3 +214,4 @@ SITE_URL= "http://localhost:8000/"
 
 # [OKS] Stripe settings
 # ==============================================
+# STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA2mNCExulBiMa14fBNu37diI2p9rOoCTa8owAG00DsytaBMr' 
