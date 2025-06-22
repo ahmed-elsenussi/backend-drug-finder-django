@@ -26,19 +26,14 @@ class OrderSerializer(serializers.ModelSerializer):
             item_id = item.get('item_id')
             quantity = item.get('ordered_quantity')
 
-            product = None
             try:
-                product = Medicine.objects.get(id=item_id)
+                medicine = Medicine.objects.get(id=item_id)
+                results.append({
+                    "name": medicine.brand_name,
+                    "price": medicine.price,
+                    "quantity": quantity
+                })
             except Medicine.DoesNotExist:
-                try:
-                    product = MedicalDevice.objects.get(id=item_id)
-                except MedicalDevice.DoesNotExist:
-                    continue  # skip if neither found
-
-            results.append({
-                "name": getattr(product, "brand_name", getattr(product, "model_number", "Unknown")),
-                "price": product.price,
-                "quantity": quantity
-            })
+                continue  # Skip if not a Medicine
 
         return results
