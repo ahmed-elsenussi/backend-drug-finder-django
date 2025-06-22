@@ -8,24 +8,29 @@ from .models import Order, Cart
 from .serializers import OrderSerializer, CartSerializer
 from .permissions import OrderAccessPermission
 from payments.models import Payment
+from inventory.permissions import IsAdminCRU
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class OrderViewSet(viewsets.ModelViewSet):
+    # [SARA]: Use OrderSerializer for all order operations
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated, OrderAccessPermission]
+    # [SARA]: Admins (IsAdminCRU) can CRU, others use OrderAccessPermission
+    permission_classes = [IsAuthenticated, IsAdminCRU | OrderAccessPermission]
+
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
         # [SARA]: Admins can see all orders, pharmacists see their store's orders, clients see their own orders
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             return Order.objects.all()
         if user.role == 'pharmacist':
             return Order.objects.filter(store__owner__user=user)
         if user.role == 'client':
             return Order.objects.filter(client__user=user)
         return Order.objects.none()
-    #[OKS] change name to create
+
+    # [OKS] change name to create
     def create(self, request, *args, **kwargs):
         user = request.user
         data = request.data
@@ -33,8 +38,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-         # [SARA]: Allow admin to create order for any user, client for self only
-        if user.is_staff or user.is_superuser:
+        # [SARA]: Allow admin to create order for any user, client for self only
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             order = serializer.save()
         elif user.role == 'client':
             client = getattr(user, 'client', None)
@@ -57,7 +62,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             'order': OrderSerializer(order).data
         }
 
-        # Handle Stripe
+        # [OK] handel stripe
+        # [SARA]: Handle Stripe payment if needed
         if payment_method == 'cash':
             order.order_status = 'pending'
             order.save()
@@ -85,7 +91,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 raise PermissionError('Pharmacists can only update order status.')
         serializer.save()
 
-    
+# [SARA]: CartViewSet for cart operations
 class CartViewSet(viewsets.ModelViewSet):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
