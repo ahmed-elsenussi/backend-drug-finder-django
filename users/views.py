@@ -73,6 +73,30 @@ class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializers
 
+# get the client profile of the authenticated user
+# and allow them to update it{amira}
+class ClientViewprofile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            client = Client.objects.get(user=request.user)
+            serializer = ClientSerializers(client)
+            return Response(serializer.data)
+        except Client.DoesNotExist:
+            return Response({'error': 'Client profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request):
+        try:
+            client = Client.objects.get(user=request.user)
+            serializer = ClientSerializers(client, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        except Client.DoesNotExist:
+            return Response({'error': 'Client profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
 
 # PHARMACIST VIEWSET
 class PharmacistViewSet(viewsets.ModelViewSet):

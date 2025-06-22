@@ -222,3 +222,11 @@ SITE_URL= "http://localhost:8000/"
 
 # [OKS] Stripe settings
 # ==============================================
+
+# from django.urls import path, include
+
+# urlpatterns = [
+#     # ...existing code...
+   
+#     # ...existing code...
+# ]
