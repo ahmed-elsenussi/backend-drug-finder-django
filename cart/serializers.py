@@ -4,8 +4,40 @@ from inventory.models import Medicine
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
+class CartItemSerializer(serializers.Serializer):
+    """Nested serializer for cart items with medicine details"""
+    product = serializers.IntegerField()
+    quantity = serializers.IntegerField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    medicine_name = serializers.CharField(read_only=True)
+    medicine_image = serializers.ImageField(read_only=True)
+
+    def to_representation(self, instance):
+        # If instance is a dict (from JSON field), fetch medicine details
+        if isinstance(instance, dict):
+            product_id = instance.get('product')
+            try:
+                medicine = Medicine.objects.get(id=product_id)
+                return {
+                    'product': product_id,
+                    'quantity': instance.get('quantity', 1),
+                    'price': instance.get('price', medicine.price),
+                    'medicine_name': medicine.brand_name or medicine.generic_name,
+                    'medicine_image': medicine.image.url if medicine.image else None
+                }
+            except Medicine.DoesNotExist:
+                return {
+                    'product': product_id,
+                    'quantity': instance.get('quantity', 1),
+                    'price': instance.get('price', 0),
+                    'medicine_name': 'Unknown Medicine',
+                    'medicine_image': None
+                }
+        return super().to_representation(instance)
+
 class CartSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
+    items = CartItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cart
@@ -85,17 +117,27 @@ class CartSerializer(serializers.ModelSerializer):
         for item in updated_items:
             product_id = item.get('product')
             quantity = item.get('quantity', 1)
+            # Get medicine details for validation and price
             try:
                 medicine = Medicine.objects.get(id=product_id, store_id=store_id)
             except Medicine.DoesNotExist:
                 raise ValidationError({'error': f'Product {product_id} does not exist in store {store_id}.'})
+            
             price = float(medicine.price)
             if quantity > medicine.stock:
                 raise ValidationError({
                     'error': f'Not enough stock for product {product_id}. Available: {medicine.stock}, requested: {quantity}'
                 })
             subtotal += price * quantity
-            checked_items.append({**item, 'price': price})
+            
+            # Store additional medicine details in the item
+            checked_items.append({
+                **item, 
+                'price': price,
+                'medicine_name': medicine.brand_name or medicine.generic_name,
+                'medicine_image_url': medicine.image.url if medicine.image else None
+            })
+        
         validated_data['items'] = checked_items
         validated_data['total_price'] = subtotal + validated_data.get('shipping_cost', 0) + validated_data.get('tax', 0)
         validated_data.pop('store', None)
