@@ -1,6 +1,6 @@
 # users/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet,CustomTokenObtainPairView,verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist
+from .views import UserViewSet, CustomTokenObtainPairView, verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist, ClientViewprofile
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -13,16 +13,10 @@ urlpatterns = [
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verify-email/<str:token>/', verify_email, name='verify-email'),
     path('client/profile/', ClientViewprofile.as_view(), name='client-profile'),
-    # [AMS] --> postponed for future 
-    # path('forget-password/', forget_password, name='forget-password'),
-    # path('reset-password/<str:token>/', validate_reset_password, name='reset-password'),
-] + router.urls
-
-    # [SENU]: add endpoint to get the current user, pharma, client
     path('me/', get_logged_in_user, name='get-logged-in-user'),
     path('me/pharmacist/', get_logged_in_pharmacist, name='get-logged-in-pharmacist'),
 
     # [AMS] --> postponed for future 
     # path('forget-password/', forget_password, name='forget-password'),
     # path('reset-password/<str:token>/', validate_reset_password, name='reset-password'),
-    ] + router.urls
+] + router.urls
