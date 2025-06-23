@@ -13,8 +13,8 @@ class CartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Only allow users to access their own cart
-        return Cart.objects.filter(user=self.request.user)
+        # Only allow users to access their own cart, ordered by creation time
+        return Cart.objects.filter(user=self.request.user).order_by('-timestamp')
 
     def perform_create(self, serializer):
         # Ensure the cart is always linked to the authenticated user

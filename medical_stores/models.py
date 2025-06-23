@@ -26,11 +26,14 @@ class MedicalStore(models.Model):
     store_banner = models.ImageField(upload_to='store/banners/', null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
+
+    # [SENU] phone + address written +  
+
     # [SARA]: Removed ManyToMany fields for medicines and devices, as each product instance is unique to a store
     # medicines = models.ManyToManyField(Medicine, blank=True)
     # devices = models.ManyToManyField(MedicalDevice, blank=True)
 
-       # [OKS] add lang and lat for the store
+    # [OKS] add lang and lat for the store
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     # --print---------
