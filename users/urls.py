@@ -14,7 +14,12 @@ urlpatterns = [
     path('verify-email/<str:token>/', verify_email, name='verify-email'),
     path('client/profile/', ClientViewprofile.as_view(), name='client-profile'),
     path('me/', get_logged_in_user, name='get-logged-in-user'),
+
+    # [SENU]: add endpoint to get the current user, pharma, client
     path('me/pharmacist/', get_logged_in_pharmacist, name='get-logged-in-pharmacist'),
+
+    # [SENU] : get current user with image
+    path('me/', get_current_user_profile, name='get-current-user'),
 
     # [AMS] --> postponed for future 
     # path('forget-password/', forget_password, name='forget-password'),
