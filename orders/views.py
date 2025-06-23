@@ -11,6 +11,7 @@ from cart.models import Cart
 from payments.models import Payment
 from .serializers import OrderSerializer, CartSerializer
 from .permissions import OrderAccessPermission
+from rest_framework.pagination import PageNumberPagination 
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -21,13 +22,18 @@ class OrderViewSet(viewsets.ModelViewSet):
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
+        queryset = Order.objects.none()
+       
         # [SARA]: Admins can see all orders, pharmacists see their store's orders, clients see their own orders
+        #[OKS] add pagination
         if user.is_staff or user.is_superuser:
-            return Order.objects.all()
-        if user.role == 'pharmacist':
-            return Order.objects.filter(store__owner__user=user)
-        if user.role == 'client':
-            return Order.objects.filter(client__user=user)
+            queryset = Order.objects.all().order_by('-timestamp')  # Newest first
+        elif user.role == 'pharmacist':
+            queryset = Order.objects.filter(store__owner__user=user).order_by('-timestamp')
+        elif user.role == 'client':
+            queryset = Order.objects.filter(client__user=user).order_by('-timestamp')
+            
+        return queryset
         return Order.objects.none()
     #[OKS] change name to create
     def create(self, request, *args, **kwargs):
