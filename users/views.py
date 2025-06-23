@@ -131,7 +131,6 @@ def verify_email(request, token):
         return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 # [AMS] Login 
-    
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         # First check if user exists and is_active status
@@ -157,31 +156,41 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except User.DoesNotExist:
             # Don't reveal whether user exists for security
             pass
+
         response = super().post(request, *args, **kwargs)
-        
+
         if response.status_code == 200:
             try:
                 # Decode the access token to get user ID
                 access_token = AccessToken(response.data['access'])
                 user_id = access_token['user_id']
-                
+
                 # Get the user object
                 user = User.objects.get(id=user_id)
-                
-                # Add user data to the response
-                response.data['user'] = {
+
+                # [SENU] Add user data to the response
+                user_data = {
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,  
                     'role': user.role,  # make sure your User model has this field
                 }
+
+                # [SENU] Include pharmacist.has_store if role is pharmacist
+                if user.role == 'pharmacist' and hasattr(user, 'pharmacist'):
+                    user_data['pharmacist'] = {
+                        'has_store': user.pharmacist.has_store
+                    }
+
+                response.data['user'] = user_data
+
             except User.DoesNotExist:
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            
 
         return response
+
     
 
 

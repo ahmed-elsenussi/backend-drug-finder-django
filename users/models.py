@@ -125,6 +125,9 @@ class Pharmacist(models.Model):
     created_at = models.DateTimeField(default=timezone.now())
     updated_at = models.DateTimeField(auto_now=True)
 
+    # [SENU]: add has store for store form profile page 
+    has_store = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.user.name

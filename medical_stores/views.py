@@ -6,6 +6,13 @@ from .filters import MedicalStoreFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 
+
+# SENU: NEW ADDED
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+
 class MedicalStoreViewSet(viewsets.ModelViewSet):
     queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
@@ -14,3 +21,16 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     filterset_class = MedicalStoreFilter
 
     search_fields = ['store_name', 'store_type']
+
+
+
+    @action(detail=False, methods=['get'], url_path='my-store')
+    def my_store(self, request):
+        pharmacist = request.user.pharmacist
+        try:
+            store = MedicalStore.objects.get(owner=pharmacist)
+        except MedicalStore.DoesNotExist:
+            return Response({'detail': 'No store found for this pharmacist'}, status=404)
+
+        serializer = self.get_serializer(store)
+        return Response(serializer.data)

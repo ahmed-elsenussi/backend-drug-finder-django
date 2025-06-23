@@ -27,6 +27,10 @@ class MedicalStore(models.Model):
     description = models.TextField(null=True, blank=True)
 
 
+    # [SENU], ADD WRITTEN ADDRESS TO BE USED IN THE PROFILE\
+    store_address = models.CharField(max_length=250, blank=True, null=True)
+
+
     # [SENU] phone + address written +  
 
     # [SARA]: Removed ManyToMany fields for medicines and devices, as each product instance is unique to a store
