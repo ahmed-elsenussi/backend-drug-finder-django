@@ -11,10 +11,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.shortcuts import render
 
+
 # [SENU]:
 from .models import Pharmacist
 from .serializers import PharmacistSerializers
 
+# [SENU]
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import PharmacistFilter
 
 # USER VIEWSET
 class UserViewSet(viewsets.ModelViewSet):
@@ -84,6 +88,8 @@ class ClientViewSet(viewsets.ModelViewSet):
 class PharmacistViewSet(viewsets.ModelViewSet):
     queryset = Pharmacist.objects.all()
     serializer_class = PharmacistSerializers
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PharmacistFilter
     
 
 #[AMS] 📩 Email Verification

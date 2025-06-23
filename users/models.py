@@ -3,6 +3,9 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.conf import settings
 # from medical_stores.models import MedicalStore  # will be used
 
+# [SENU]: newly added for the admin requess
+from django.utils import timezone
+
 # USER MODEL=========================================================
 
 # Custom User Manager (Required for email-based login)
@@ -77,6 +80,14 @@ class Client(models.Model):
 
 # PHARMACIST MODEL======================================================
 
+
+STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+]
+
+
 class Pharmacist(models.Model):
     # id for USER: FK,(PK)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True)
@@ -87,7 +98,7 @@ class Pharmacist(models.Model):
     
     # for performance + for prevent non-licensed pharmacist
     medical_stores_ids = models.JSONField(default=list)
-    is_approved = models.BooleanField(default=False)
+    # is_approved = models.BooleanField(default=False)  # [SENU]: I DON'T NEED IT ANYMORE , REPLACED BY LICENSE_STATUS
 
     # SENU [for single store logic]: 
     # logic: empty until the admin accept license, then the store will be clickable
@@ -104,6 +115,15 @@ class Pharmacist(models.Model):
 
     # [SENU]: add banner for profile
     pharmacist_banner = models.ImageField(upload_to='pharmacist/banner/', blank=True, null=True)
+
+
+    # [SENU] NEW ADDED FOR THE APPROVALE LOGIC
+    license_status = models.CharField(max_length=10,choices=STATUS_CHOICES,default='pending')
+    reject_message = models.TextField(blank=True,null=True, default='revise and send your licsense again please')
+
+    # [SENU]: add timestamp as it needed in the requests in admin
+    created_at = models.DateTimeField(default=timezone.now())
+    updated_at = models.DateTimeField(auto_now=True)
 
 
     def __str__(self):

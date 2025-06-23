@@ -13,7 +13,9 @@ from django.utils.html import strip_tags
 class UserSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['name',
+        fields = [
+                'id',
+                'name',
                 'email',
                 'email_verified',
                 'is_active',
