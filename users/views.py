@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from .models import User, Client, Pharmacist
-from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers
+from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -181,6 +181,19 @@ def get_logged_in_pharmacist(request):
 
 
 # ============================================
+
+# [SENU]: HANDLE THE ERROR LOGIC OF NOT ADDING THE IMAGE IN THE PARENT USER TABLE
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user_profile(request):
+    serializer = CurrentUserSerializer(request.user, context={'request': request})
+    return Response(serializer.data)
+
+
+
+
+
+#====================================
 # from config import settings
 # import uuid
 # from django.core.mail import send_mail
