@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from .models import User, Client, Pharmacist
 from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
@@ -10,6 +10,12 @@ from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.shortcuts import render
+
+# [SENU]:
+from .models import Pharmacist
+from .serializers import PharmacistSerializers
+
+
 # USER VIEWSET
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -146,7 +152,35 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             
 
         return response
+    
 
+
+# [SENU]: getting the current user
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_logged_in_user(request):
+    user = request.user
+    return Response({
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+        'role': user.role
+    })
+
+
+# [SENU]: get the pharmacist dat
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_logged_in_pharmacist(request):
+    try:
+        pharmacist = Pharmacist.objects.get(user=request.user)
+        serializer = PharmacistSerializers(pharmacist)
+        return Response(serializer.data)
+    except Pharmacist.DoesNotExist:
+        return Response({'error': 'Pharmacist profile not found'}, status=404)
+
+
+# ============================================
 # from config import settings
 # import uuid
 # from django.core.mail import send_mail
