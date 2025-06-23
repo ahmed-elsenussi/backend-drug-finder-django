@@ -101,6 +101,7 @@ class PharmacistSerializers(serializers.ModelSerializer):
     # mirror the name from the user table
     name = serializers.CharField(source='user.name', read_only= True)
     user_id = serializers.IntegerField(source='user.id', read_only = True)
+    id = serializers.IntegerField(source='user.id', read_only=True)  # [SENU]: NEED IT TO UPDATE PROFILE
     
     class Meta:
         model = Pharmacist
