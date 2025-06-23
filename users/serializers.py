@@ -104,3 +104,22 @@ class PharmacistSerializers(serializers.ModelSerializer):
     class Meta:
         model = Pharmacist
         fields = '__all__'
+
+
+
+
+# [SENU]: HANDLE THE ERROR LOGIC OF NOT ADDING THE IMAGE IN THE PARENT USER TABLE
+class CurrentUserSerializer(serializers.ModelSerializer):
+    image_profile = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'role', 'image_profile']
+
+    def get_image_profile(self, user):
+        request = self.context.get('request')
+        if user.role == 'client' and hasattr(user, 'client'):
+            return request.build_absolute_uri(user.client.image_profile.url) if user.client.image_profile else None
+        if user.role == 'pharmacist' and hasattr(user, 'pharmacist'):
+            return request.build_absolute_uri(user.pharmacist.image_profile.url) if user.pharmacist.image_profile else None
+        return None  # admin has no image

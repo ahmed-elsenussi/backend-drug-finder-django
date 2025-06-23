@@ -1,6 +1,6 @@
 # users/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet,CustomTokenObtainPairView,verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist
+from .views import UserViewSet,CustomTokenObtainPairView,verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_pharmacist, get_current_user_profile #,forget_password,validate_reset_password
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -16,8 +16,10 @@ urlpatterns =[
     path('verify-email/<str:token>/', verify_email, name='verify-email'),
 
     # [SENU]: add endpoint to get the current user, pharma, client
-    path('me/', get_logged_in_user, name='get-logged-in-user'),
     path('me/pharmacist/', get_logged_in_pharmacist, name='get-logged-in-pharmacist'),
+
+    # [SENU] : get current user with image
+    path('me/', get_current_user_profile, name='get-current-user'),
 
     # [AMS] --> postponed for future 
     # path('forget-password/', forget_password, name='forget-password'),
