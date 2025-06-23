@@ -54,7 +54,10 @@ class CartViewSet(viewsets.ModelViewSet):
                 if store_id is None:
                     store_id = medicine.store_id
                 elif medicine.store_id != store_id:
-                    return Response({'error': 'All products must be from the same store.'}, status=status.HTTP_400_BAD_REQUEST)
+                  return Response({
+    'error': 'Cart contains products from another store. Do you want to clear the cart and add this product?',
+    'requires_confirmation': True
+}, status=status.HTTP_400_BAD_REQUEST)
                 if quantity > medicine.stock:
                     return Response({
                         'error': f'Not enough stock for product {product_id}. Available: {medicine.stock}, requested: {quantity}'
