@@ -40,6 +40,8 @@ class OrderViewSet(viewsets.ModelViewSet):
         user = request.user
         data = request.data
         payment_method = data.get("payment_method", "cash")
+        store_id = data.get("store")  # Get store from request data
+
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -52,7 +54,12 @@ class OrderViewSet(viewsets.ModelViewSet):
             client = getattr(user, 'client', None)
             if not client:
                 raise PermissionError('No client profile found for this user.')
-            order = serializer.save(client=client)
+            # [OKS] Save client and store in the order
+            save_kwargs = {'client': client}
+            if store_id:
+             save_kwargs['store_id'] = store_id
+            
+            order = serializer.save(**save_kwargs)
             cart_user = client.user  # [OKS] get the user from the client relation
         else:
             raise PermissionError('Only clients and admins can create orders.')
