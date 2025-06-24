@@ -66,7 +66,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             raise PermissionError('Only clients and admins can create orders.')
         #[OKS] notify the pharmacist
         if order.store and order.store.owner:
-            pharmacist_user = order.store.owner.user  # Get the User instance, not Pharmacist
+            pharmacist_user = order.store.owner.user 
             send_notification(
                 user=pharmacist_user,
                 message=f"You have a new order #{order.id} from {order.client.user.username}",
