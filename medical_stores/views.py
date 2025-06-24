@@ -5,12 +5,14 @@ from .serializers import MedicalStoreSerializer
 from .filters import MedicalStoreFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
+from inventory.permissions import IsAdminOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 
 
 # SENU: NEW ADDED
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+# from rest_framework.permissions import IsAuthenticated
 
 
 class MedicalStoreViewSet(viewsets.ModelViewSet):

@@ -1,14 +1,15 @@
 from rest_framework import viewsets
 from .models import User, Client, Pharmacist
 from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from inventory.permissions import IsAdminOrReadOnly
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
-from django.db import transaction  
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from django.db import transaction  
 from django.shortcuts import render
 
 
@@ -24,6 +25,13 @@ from .filters import PharmacistFilter
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializers
+    
+    def get_permissions(self):
+        # [SARA]: Allow anyone to create (register), require auth for other actions
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminOrReadOnly()]
+    
     def create(self, request, *args, **kwargs):
         #         ('guest', 'Guest'),('client', 'Client'),
         # ('pharmacist', 'Pharmacist'),('admin', 'Admin')
@@ -82,6 +90,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializers
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
 # get the client profile of the authenticated user
 # and allow them to update it{amira}
@@ -112,6 +121,7 @@ class ClientViewprofile(APIView):
 class PharmacistViewSet(viewsets.ModelViewSet):
     queryset = Pharmacist.objects.all()
     serializer_class = PharmacistSerializers
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = PharmacistFilter
     
@@ -331,6 +341,5 @@ def get_current_user_profile(request):
 #         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 #     except Exception as e:
 #         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
-                
-        
+
+
