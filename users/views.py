@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from .models import User, Client, Pharmacist
-from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers
+from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -11,10 +11,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.shortcuts import render
 
+
 # [SENU]:
 from .models import Pharmacist
 from .serializers import PharmacistSerializers
 
+# [SENU]
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import PharmacistFilter
 
 # USER VIEWSET
 class UserViewSet(viewsets.ModelViewSet):
@@ -79,11 +83,37 @@ class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializers
 
+# get the client profile of the authenticated user
+# and allow them to update it{amira}
+class ClientViewprofile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            client = Client.objects.get(user=request.user)
+            serializer = ClientSerializers(client)
+            return Response(serializer.data)
+        except Client.DoesNotExist:
+            return Response({'error': 'Client profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request):
+        try:
+            client = Client.objects.get(user=request.user)
+            serializer = ClientSerializers(client, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        except Client.DoesNotExist:
+            return Response({'error': 'Client profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
 
 # PHARMACIST VIEWSET
 class PharmacistViewSet(viewsets.ModelViewSet):
     queryset = Pharmacist.objects.all()
     serializer_class = PharmacistSerializers
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PharmacistFilter
     
 
 #[AMS] 📩 Email Verification
@@ -101,7 +131,6 @@ def verify_email(request, token):
         return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 # [AMS] Login 
-    
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         # First check if user exists and is_active status
@@ -127,31 +156,41 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except User.DoesNotExist:
             # Don't reveal whether user exists for security
             pass
+
         response = super().post(request, *args, **kwargs)
-        
+
         if response.status_code == 200:
             try:
                 # Decode the access token to get user ID
                 access_token = AccessToken(response.data['access'])
                 user_id = access_token['user_id']
-                
+
                 # Get the user object
                 user = User.objects.get(id=user_id)
-                
-                # Add user data to the response
-                response.data['user'] = {
+
+                # [SENU] Add user data to the response
+                user_data = {
                     'id': user.id,
                     'email': user.email,
                     'name': user.name,  
                     'role': user.role,  # make sure your User model has this field
                 }
+
+                # [SENU] Include pharmacist.has_store if role is pharmacist
+                if user.role == 'pharmacist' and hasattr(user, 'pharmacist'):
+                    user_data['pharmacist'] = {
+                        'has_store': user.pharmacist.has_store
+                    }
+
+                response.data['user'] = user_data
+
             except User.DoesNotExist:
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            
 
         return response
+
     
 
 
@@ -181,6 +220,19 @@ def get_logged_in_pharmacist(request):
 
 
 # ============================================
+
+# [SENU]: HANDLE THE ERROR LOGIC OF NOT ADDING THE IMAGE IN THE PARENT USER TABLE
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user_profile(request):
+    serializer = CurrentUserSerializer(request.user, context={'request': request})
+    return Response(serializer.data)
+
+
+
+
+
+#====================================
 # from config import settings
 # import uuid
 # from django.core.mail import send_mail
