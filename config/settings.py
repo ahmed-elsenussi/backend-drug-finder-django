@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django_extensions',
     # [AMS] Middlewares apps 
     'rest_framework_simplejwt',
-    'corsheaders', 
+    'corsheaders',
+    'channels', 
     
     
     # [AMS] APPS WE CREATE 
@@ -124,8 +125,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -233,3 +232,12 @@ STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA
    
 #     # ...existing code...
 # ]
+STRIPE_SECRET_KEY=""
+
+# For Real-time 
+# ASGI_APPLICATION = 'config.asgi.application'
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
+# }
