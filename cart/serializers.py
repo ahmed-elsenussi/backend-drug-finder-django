@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Cart
 from inventory.models import Medicine
 from rest_framework.exceptions import ValidationError
-
+from medical_stores.models import MedicalStore 
 class CartSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
 
@@ -104,12 +104,18 @@ class CartSerializer(serializers.ModelSerializer):
 
         validated_data['items'] = checked_items
         validated_data['total_price'] = subtotal + float(validated_data.get('shipping_cost', 0)) + float(validated_data.get('tax', 0))
-        validated_data.pop('store', None)
 
         if cart:
+            validated_data.pop('user', None)
+            validated_data.pop('store', None)
             for attr, value in validated_data.items():
                 setattr(cart, attr, value)
             cart.save()
             return cart
 
-        return super().create(validated_data)
+       
+        validated_data.pop('user', None)
+        validated_data.pop('store', None)
+        store_instance = MedicalStore.objects.get(id=store_id)
+
+        return Cart.objects.create(user=user, store=store_instance, **validated_data)

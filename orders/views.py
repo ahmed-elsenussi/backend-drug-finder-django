@@ -11,6 +11,7 @@ from cart.models import Cart
 from payments.models import Payment
 from .serializers import OrderSerializer, CartSerializer
 from .permissions import OrderAccessPermission
+from rest_framework.pagination import PageNumberPagination 
 from payments.models import Payment
 from inventory.permissions import IsAdminCRU
 
@@ -25,14 +26,25 @@ class OrderViewSet(viewsets.ModelViewSet):
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
-        # [SARA]: Admins can see all orders, pharmacists see their store's orders, clients see their own orders
+        queryset = Order.objects.none()
+       
+        # [OK - SARA] pagination with authorization 
         if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
-            return Order.objects.all()
-        if user.role == 'pharmacist':
-            return Order.objects.filter(store__owner__user=user)
-        if user.role == 'client':
-            return Order.objects.filter(client__user=user)
-        return Order.objects.none()
+            queryset = Order.objects.all().order_by('-timestamp')  # Newest first
+        elif user.role == 'pharmacist':
+            queryset = Order.objects.filter(store__owner__user=user).order_by('-timestamp')
+        elif user.role == 'client':
+            queryset = Order.objects.filter(client__user=user).order_by('-timestamp')
+            
+        return queryset
+        # [SARA]: Admins can see all orders, pharmacists see their store's orders, clients see their own orders
+        # if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
+        #     return Order.objects.all()
+        # if user.role == 'pharmacist':
+        #     return Order.objects.filter(store__owner__user=user)
+        # if user.role == 'client':
+        #     return Order.objects.filter(client__user=user)
+        # return Order.objects.none()
 
     # [OKS] change name to create
     def create(self, request, *args, **kwargs):
