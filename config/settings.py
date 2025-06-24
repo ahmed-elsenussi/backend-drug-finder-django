@@ -219,6 +219,8 @@ DEFAULT_FROM_EMAIL = 'amhmdslah104@gmail.com'  # Add this
 SERVER_EMAIL = 'amhmdslah104@gmail.com'  # For error emails
 SITE_NAME = "Drug Finder"
 SITE_URL= "http://localhost:8000/"
+# Add this line to disable SSL verification
+EMAIL_SSL_CERTFILE = None
 
 # [OKS] Stripe settings
 STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA2mNCExulBiMa14fBNu37diI2p9rOoCTa8owAG00DsytaBMr'
