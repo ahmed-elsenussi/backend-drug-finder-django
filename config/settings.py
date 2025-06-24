@@ -230,7 +230,6 @@ STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA
    
 #     # ...existing code...
 # ]
-STRIPE_SECRET_KEY=""
 
 # For Real-time 
 # ASGI_APPLICATION = 'config.asgi.application'
