@@ -233,3 +233,11 @@ STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA
    
 #     # ...existing code...
 # ]
+
+# For Real-time 
+# ASGI_APPLICATION = 'config.asgi.application'
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
+# }
