@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django_extensions',
     # [AMS] Middlewares apps 
     'rest_framework_simplejwt',
-    'corsheaders', 
+    'corsheaders',
+    'channels', 
     
     
     # [AMS] APPS WE CREATE 
@@ -124,8 +125,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -222,3 +221,12 @@ SITE_URL= "http://localhost:8000/"
 
 # [OKS] Stripe settings
 # ==============================================
+STRIPE_SECRET_KEY=""
+
+# For Real-time 
+# ASGI_APPLICATION = 'config.asgi.application'
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
+# }
