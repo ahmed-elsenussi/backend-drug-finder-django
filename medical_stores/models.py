@@ -27,8 +27,9 @@ class MedicalStore(models.Model):
     description = models.TextField(null=True, blank=True)
 
 
-    # [SENU], ADD WRITTEN ADDRESS TO BE USED IN THE PROFILE\
+    # [SENU], ADD WRITTEN ADDRESS TO BE USED IN THE PROFILE + add phone
     store_address = models.CharField(max_length=250, blank=True, null=True)
+    phone  = models.CharField(max_length=15, blank=True, null=True)
 
 
 
@@ -36,8 +37,6 @@ class MedicalStore(models.Model):
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
 
-
-    # [SENU] phone + address written +  
 
     # [SARA]: Removed ManyToMany fields for medicines and devices, as each product instance is unique to a store
     # medicines = models.ManyToManyField(Medicine, blank=True)
