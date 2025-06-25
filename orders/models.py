@@ -35,7 +35,7 @@ class Order(models.Model):
 
     # choices [SENU]: CHANGED AS [SARA] SAID
     order_status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),('paid','Paid'),('on_process', 'On_Process'),('shipping', 'Shipping'), ('delivered', 'Delivered')
+        ('pending', 'Pending'),('paid','Paid'),('on_process', 'On_Process'),('shipping', 'Shipping'), ('delivered', 'Delivered'), ('canceled', 'Canceled')
     ])
     payment_method = models.CharField(max_length=10, choices=[
         ('cash', 'Cash'),('card', 'Card'),('wallet', 'Wallet')

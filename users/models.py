@@ -122,7 +122,7 @@ class Pharmacist(models.Model):
     reject_message = models.TextField(blank=True,null=True, default='revise and send your licsense again please')
 
     # [SENU]: add timestamp as it needed in the requests in admin
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     # [SENU]: add has store for store form profile page 
