@@ -17,8 +17,8 @@ class MedicalStore(models.Model):
         ('medical_devices', 'Medical Devices'),('pharmacy', 'Pharmacy'),('both', 'Both')
     ])
     
-    license_image = models.ImageField(upload_to='store/licenses/')
-    license_expiry_date = models.DateField()
+    license_image = models.ImageField(upload_to='store/licenses/', null=True, blank=True)
+    license_expiry_date = models.DateField(null=True, blank=True)
 
 
     # optionals
