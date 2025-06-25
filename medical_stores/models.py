@@ -31,6 +31,12 @@ class MedicalStore(models.Model):
     store_address = models.CharField(max_length=250, blank=True, null=True)
 
 
+
+    # [SENU] New fields for opening and closing times
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+
+
     # [SENU] phone + address written +  
 
     # [SARA]: Removed ManyToMany fields for medicines and devices, as each product instance is unique to a store
