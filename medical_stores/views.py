@@ -8,19 +8,20 @@ from rest_framework.filters import SearchFilter
 #[OKS]  import necessary modules for fetching medical store  with medicine inventory
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from inventory.models import Medicine  # Assuming you have this model
+from inventory.models import Medicine 
 from django.db.models import Q
 from rest_framework import serializers
 
 
 
+from inventory.permissions import IsAdminOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 
 
 # SENU: NEW ADDED
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+# from rest_framework.permissions import IsAuthenticated
 
 
 class MedicalStoreViewSet(viewsets.ModelViewSet):
@@ -29,7 +30,6 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = MedicalStoreFilter
-
     search_fields = ['store_name', 'store_type']
     medicines = serializers.SerializerMethodField() 
     permission_classes=[IsAuthenticated]
@@ -37,6 +37,23 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     
 
 
+    def perform_create(self, serializer):
+        store = serializer.save()
+
+        # ✅ Update the pharmacist after store creation
+        user = self.request.user
+        if hasattr(user, 'pharmacist'):
+            pharmacist = user.pharmacist
+            pharmacist.has_store = True
+
+            # Ensure it's a list and append
+            if not pharmacist.medical_stores_ids:
+                pharmacist.medical_stores_ids = []
+
+            if store.id not in pharmacist.medical_stores_ids:
+                pharmacist.medical_stores_ids.append(store.id)
+
+            pharmacist.save()
 
     @action(detail=False, methods=['get'], url_path='my-store')
     def my_store(self, request):

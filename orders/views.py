@@ -12,22 +12,26 @@ from payments.models import Payment
 from .serializers import OrderSerializer, CartSerializer
 from .permissions import OrderAccessPermission
 from rest_framework.pagination import PageNumberPagination 
+from payments.models import Payment
+from inventory.permissions import IsAdminCRU
 from notifications.utils import send_notification 
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class OrderViewSet(viewsets.ModelViewSet):
+    # [SARA]: Use OrderSerializer for all order operations
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated, OrderAccessPermission]
+    # [SARA]: Admins (IsAdminCRU) can CRU, others use OrderAccessPermission
+    permission_classes = [IsAuthenticated, IsAdminCRU | OrderAccessPermission]
+
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
         queryset = Order.objects.none() 
        
-        # [SARA]: Admins can see all orders, pharmacists see their store's orders, clients see their own orders
-        #[OKS] add pagination
-        if user.is_staff or user.is_superuser:
+        # [OK - SARA] pagination with authorization 
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             queryset = Order.objects.all().order_by('-timestamp')  # Newest first
         elif user.role == 'pharmacist':
             queryset = Order.objects.filter(store__owner__user=user).order_by('-timestamp')
@@ -35,8 +39,16 @@ class OrderViewSet(viewsets.ModelViewSet):
             queryset = Order.objects.filter(client__user=user).order_by('-timestamp')
             
         return queryset
-        return Order.objects.none()
-    #[OKS] change name to create
+        # [SARA]: Admins can see all orders, pharmacists see their store's orders, clients see their own orders
+        # if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
+        #     return Order.objects.all()
+        # if user.role == 'pharmacist':
+        #     return Order.objects.filter(store__owner__user=user)
+        # if user.role == 'client':
+        #     return Order.objects.filter(client__user=user)
+        # return Order.objects.none()
+
+    # [OKS] change name to create
     def create(self, request, *args, **kwargs):
         user = request.user
         data = request.data
@@ -46,9 +58,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-
         # [SARA]: Allow admin to create order for any user, client for self only
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             order = serializer.save()
             cart_user = user
         elif user.role == 'client':
