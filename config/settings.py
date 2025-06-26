@@ -61,9 +61,12 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # [AMS] enable google at first 
+    
+    # 'django.middleware.security.SecurityMiddleware'
+    'django.middleware.security.SecurityMiddleware',
     # [OKS] cors
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -76,6 +79,8 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  #[AMS] React default port
+    
+    "http://localhost:3001", 
     
 ]
 CORS_ALLOW_CREDENTIALS = True
@@ -242,11 +247,22 @@ STRIPE_SECRET_KEY ='sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA
 #     }
 # }
 
-from datetime import timedelta
 
+################ [AMS]->INTEGRATION WITH NODE #########
+REDIS_URL = "redis://localhost:6379/0"
+NOTIFICATION_NODE_SERVER = "http://localhost:3001"  # Node server URL
+GOOGLE_CLIENT_ID = '830041637628-d3troc4aqg9q48q7rmncg1d62sc3q26b.apps.googleusercontent.com'
+
+# [AMS]:- for enable cors on google login 
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+
+#[AMS] make access atoken valid for 7 days
+from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  # Access token valid for 7 days
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Refresh token valid for 30 days
     'ROTATE_REFRESH_TOKENS': True,  # Rotate refresh tokens
     'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens after rotation
 }
+

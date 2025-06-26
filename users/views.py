@@ -13,6 +13,15 @@ from django.db import transaction
 from django.shortcuts import render
 from users.permissions import IsSelfPharmacistOrAdmin
 
+# [AMS] GOOGLE AUTH #######################
+from rest_framework.views import APIView
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from django.conf import settings
+from rest_framework_simplejwt.tokens import RefreshToken
+import uuid
+#############################################
+
 
 # [SENU]:
 from .models import Pharmacist
@@ -202,9 +211,66 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         return response
 
-    
+# [AMS] GOOGLE AUTHENTICATION (LOGIN)
+class GoogleLoginView(APIView):
+    def post(self, request):
+        token = request.data.get('token')
+        
+        try:
+            # Verify Google token
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                settings.GOOGLE_CLIENT_ID
+            )
 
-
+            # Get user email from Google payload
+            email = idinfo['email']
+            
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # Create new user if doesn't exist
+                user = User.objects.create(
+                    email=email,
+                    name=idinfo.get('name', ''),
+                    role='client',  # Default role
+                    email_verified=True,
+                    is_active=True
+                )
+                user.set_unusable_password()  # No password needed
+                user.save()
+                
+                # Create client profile
+                Client.objects.create(user=user)
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            # Prepare response
+            response_data = {
+                'access': str(access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'role': user.role,
+                }
+            }
+            
+            # Add pharmacist data if applicable
+            if user.role == 'pharmacist' and hasattr(user, 'pharmacist'):
+                response_data['user']['pharmacist'] = {
+                    'has_store': user.pharmacist.has_store
+                }
+            
+            return Response(response_data)
+            
+        except ValueError:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+###################################
 # [SENU]: getting the current user
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
