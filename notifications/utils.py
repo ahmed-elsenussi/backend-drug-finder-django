@@ -3,7 +3,17 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from .models import Notification
+
+from .serializers import NotificationSerializer
+
 from users.models import User  # Import your User model
+
+# RealTime 
+import json
+import redis
+from django.conf import settings
+
+redis_conn = redis.Redis.from_url(settings.REDIS_URL)
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +25,8 @@ def send_notification(
     send_email=False,
     email_subject=None,
     email_template=None,
-    email_context=None
+    email_context=None,
+    realtime=True
 ):
     """
     Creates a notification for a user and optionally sends an email
@@ -47,9 +58,15 @@ def send_notification(
             template=email_template,
             context=email_context
         )
+    if realtime:
+        try:
+            # Use serializer to ensure consistent format
+            serializer = NotificationSerializer(notification)
+            redis_conn.publish('notifications', json.dumps(serializer.data))
+        except Exception as e:
+            logger.error(f"Redis publish error: {e}")
     
     return notification
-
 def send_notification_email(
     user,
     notification,

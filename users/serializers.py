@@ -63,7 +63,6 @@ class UserSerializers(serializers.ModelSerializer):
         email.send()
 
         return user
-
 # =================== TOKEN LOGIN SERIALIZER ======================
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -74,8 +73,20 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        data = super().validate(attrs)
-
+        try:
+            data = super().validate(attrs)
+        except serializers.ValidationError as e:
+            # Handle Google users who haven't set password
+            if "No active account found" in str(e):
+                user = User.objects.get(email=attrs.get('email'))
+                if user.has_usable_password():
+                    raise e
+                else:
+                    raise serializers.ValidationError(
+                        "Your account was created with Google. Please use Google login."
+                    )
+            else:
+                raise e
         # Check if email is verified
         if not self.user.email_verified:
             raise serializers.ValidationError("Email not verified. Please check your email for verification link.")
