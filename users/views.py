@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.views import APIView
 from django.db import transaction  
 from django.shortcuts import render
+from users.permissions import IsSelfPharmacistOrAdmin
 
 
 # [SENU]:
@@ -121,7 +122,7 @@ class ClientViewprofile(APIView):
 class PharmacistViewSet(viewsets.ModelViewSet):
     queryset = Pharmacist.objects.all()
     serializer_class = PharmacistSerializers
-    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [IsAuthenticated, IsSelfPharmacistOrAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_class = PharmacistFilter
     

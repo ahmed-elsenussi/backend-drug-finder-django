@@ -24,6 +24,10 @@ class MedicalDeviceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         # [SARA]: Only allow creating for pharmacist's own store
+
+        # [SENU]:DEBUG
+        print(f"HELLLLLLLLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+
         if user.role == 'pharmacist':
             store = serializer.validated_data.get('store')
             if not store or store.owner.user != user:
@@ -65,9 +69,24 @@ class MedicineViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
+
+
+        # [SENU]:DEBUG
+        print(f"HELLLLLLLLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+        print(f'User: {user}')
+
+
+        print(f'serializer: {serializer.validated_data}')
+
+
         # [SARA]: Only allow creating for pharmacist's own store
         if user.role == 'pharmacist':
             store = serializer.validated_data.get('store')
+
+            # DEBUG: SENU
+            # so he couldn't find the store for the user
+            print(f'Store: {store}')
+
             if not store or store.owner.user != user:
                 raise PermissionError('You can only add medicines to your own store.')
         serializer.save()

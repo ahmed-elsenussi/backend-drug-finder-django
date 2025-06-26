@@ -21,10 +21,27 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = MedicalStoreFilter
-
     search_fields = ['store_name', 'store_type']
 
+    permission_classes = [IsAuthenticated]  # Add this if missing
 
+    def perform_create(self, serializer):
+        store = serializer.save()
+
+        # ✅ Update the pharmacist after store creation
+        user = self.request.user
+        if hasattr(user, 'pharmacist'):
+            pharmacist = user.pharmacist
+            pharmacist.has_store = True
+
+            # Ensure it's a list and append
+            if not pharmacist.medical_stores_ids:
+                pharmacist.medical_stores_ids = []
+
+            if store.id not in pharmacist.medical_stores_ids:
+                pharmacist.medical_stores_ids.append(store.id)
+
+            pharmacist.save()
 
     @action(detail=False, methods=['get'], url_path='my-store')
     def my_store(self, request):

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import User, Client, Pharmacist
+from medical_stores.models import MedicalStore
+from medical_stores.serializers import MedicalStoreSerializer
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.core.mail import send_mail
@@ -115,11 +117,11 @@ class ClientSerializers(serializers.ModelSerializer):
 
 # =================== PHARMACIST SERIALIZER =======================
 class PharmacistSerializers(serializers.ModelSerializer):
-
-    # [SENU] mirror the name from the user table
     name = serializers.CharField(source='user.name', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
-    id = serializers.IntegerField(source='user.id', read_only=True)  # [SENU]: NEED IT TO UPDATE PROFILE
+    id = serializers.IntegerField(source='user.id', read_only=True)
+
+    medical_stores_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Pharmacist
