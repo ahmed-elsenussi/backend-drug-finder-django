@@ -17,8 +17,8 @@ class MedicalStore(models.Model):
         ('medical_devices', 'Medical Devices'),('pharmacy', 'Pharmacy'),('both', 'Both')
     ])
     
-    license_image = models.ImageField(upload_to='store/licenses/')
-    license_expiry_date = models.DateField()
+    license_image = models.ImageField(upload_to='store/licenses/', null=True, blank=True)
+    license_expiry_date = models.DateField(null=True, blank=True)
 
 
     # optionals
@@ -27,11 +27,16 @@ class MedicalStore(models.Model):
     description = models.TextField(null=True, blank=True)
 
 
-    # [SENU], ADD WRITTEN ADDRESS TO BE USED IN THE PROFILE\
+    # [SENU], ADD WRITTEN ADDRESS TO BE USED IN THE PROFILE + add phone
     store_address = models.CharField(max_length=250, blank=True, null=True)
+    phone  = models.CharField(max_length=15, blank=True, null=True)
 
 
-    # [SENU] phone + address written +  
+
+    # [SENU] New fields for opening and closing times
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+
 
     # [SARA]: Removed ManyToMany fields for medicines and devices, as each product instance is unique to a store
     # medicines = models.ManyToManyField(Medicine, blank=True)
