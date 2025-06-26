@@ -36,13 +36,16 @@ io.on("connection", (socket) => {
   socket.on("join", (userId) => {
     socket.join(`user_${userId}`);
     console.log(`User ${userId} joined notification room`);
+    // Store userId on socket for later use
+    socket.userId = userId;
   });
 
   socket.on("mark_read", (notificationId) => {
-    // Broadcast to all clients to update UI
-    io.emit("notification_read", notificationId);
+    if (socket.userId) {
+      // Broadcast to all clients in the user's room
+      io.to(`user_${socket.userId}`).emit("notification_read", notificationId);
+    }
   });
-
   socket.on("disconnect", () => {
     console.log("Client disconnected");
   });
