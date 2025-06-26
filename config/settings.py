@@ -265,4 +265,3 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,  # Rotate refresh tokens
     'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens after rotation
 }
-

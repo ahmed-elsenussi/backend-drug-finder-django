@@ -22,9 +22,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 #############################################
 
-
-# [SENU]:
-from .models import Pharmacist
 from .serializers import PharmacistSerializers
 
 # [SENU]
