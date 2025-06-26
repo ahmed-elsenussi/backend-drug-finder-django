@@ -91,7 +91,7 @@ REST_FRAMEWORK = {
     # [SENU] Add this to enable filters and pagination globally
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10, 
+    'PAGE_SIZE': 12, 
 }
 
     
