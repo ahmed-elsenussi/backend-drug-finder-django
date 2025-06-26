@@ -123,7 +123,32 @@ class PharmacistSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = Pharmacist
-        fields = '__all__'
+        fields = [
+            'id',
+            'user_id',
+            'name',
+            'image_profile',
+            'image_license',
+            'license_status',
+            'has_store',
+            'medical_stores_ids',
+            'medical_stores_data',
+        ]
+
+
+    def get_medical_stores_data(self, obj):
+        from medical_stores.models import MedicalStore
+        from medical_stores.serializers import MedicalStoreSerializer
+
+        if obj.has_store and obj.medical_stores_ids:
+            stores = MedicalStore.objects.filter(id__in=obj.medical_stores_ids)
+            if stores.exists():
+                return MedicalStoreSerializer(stores.first()).data  # Assuming single store logic
+        return None
+
+
+
+
 
 
 # =========== GET USER PROFILE WITH IMAGE HANDLING ================
