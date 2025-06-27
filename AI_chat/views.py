@@ -14,13 +14,13 @@ def ask_question(request):
         question = data.get("question", "").strip()
 
         if not question:
-            return JsonResponse({"error": "⚠️ Question is required."}, status=400)
+            return JsonResponse({"error": " Question is required."}, status=400)
 
         answer = answer_question(question)
         return JsonResponse({"answer": answer}, status=200)
 
     except json.JSONDecodeError:
-        return JsonResponse({"error": "❌ Invalid JSON format."}, status=400)
+        return JsonResponse({"error": " Invalid JSON format."}, status=400)
 
     except Exception as e:
         traceback.print_exc()
