@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from django.db import transaction  
 from django.shortcuts import render
 from users.permissions import IsSelfPharmacistOrAdmin
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser # NEW ADDED FOR HANDLING UPDATE LICENSE STATUS
 
 # [SENU]:
 from .models import Pharmacist
@@ -125,6 +125,7 @@ class PharmacistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSelfPharmacistOrAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_class = PharmacistFilter
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # NEW ADDED FOR HANDLING UPDATE LICENSE STATUS
     
 
 #[AMS] 📩 Email Verification
