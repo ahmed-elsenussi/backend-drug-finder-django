@@ -42,6 +42,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('guest', 'Guest'),('client', 'Client'),
         ('pharmacist', 'Pharmacist'),('admin', 'Admin')
     ], default='guest')
+    auth_provider = models.CharField(
+        max_length=20,
+        choices=[('email', 'Email'), ('google', 'Google')],
+        default='email'
+    )
 
     # use email as username
     username = None  # rm username 
