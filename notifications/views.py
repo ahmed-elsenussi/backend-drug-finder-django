@@ -3,6 +3,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Notification
 from .serializers import NotificationSerializer
+from django.conf import settings
+import requests
+
 
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
@@ -23,6 +26,17 @@ class NotificationViewSet(viewsets.ModelViewSet):
         if not notification.is_read:
             notification.is_read = True
             notification.save(update_fields=['is_read'])
+            
+            # Notify Node server 
+            # try:
+            #     requests.post(
+            #         f"{settings.NOTIFICATION_NODE_SERVER}/read",
+            #         json={'notification_id': notification.id},
+            #         timeout=0.5
+            #     )
+            # except:
+            #     pass
+                
         return Response({'status': 'marked as read'})
 
     @action(detail=False, methods=['post'])
