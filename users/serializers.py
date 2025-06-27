@@ -131,7 +131,6 @@ class PharmacistSerializers(serializers.ModelSerializer):
     name = serializers.CharField(source='user.name', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     id = serializers.IntegerField(source='user.id', read_only=True)
-
     medical_stores_data = serializers.SerializerMethodField()
 
     class Meta:
@@ -142,10 +141,22 @@ class PharmacistSerializers(serializers.ModelSerializer):
             'name',
             'image_profile',
             'image_license',
+            'license_status',
             'has_store',
             'medical_stores_ids',
-            'medical_stores_data', 
+            'medical_stores_data',
         ]
+        extra_kwargs = {
+            'image_license': {'required': False}  # Make field optional for updates
+        }
+
+    def update(self, instance, validated_data):
+        # Handle file fields separately
+        if 'image_license' in self.context['request'].FILES:
+            instance.image_license = validated_data.get('image_license', instance.image_license)
+        instance.license_status = validated_data.get('license_status', instance.license_status)
+        instance.save()
+        return instance
 
 
     def get_medical_stores_data(self, obj):
