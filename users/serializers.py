@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import User, Client, Pharmacist
+from medical_stores.models import MedicalStore
+from medical_stores.serializers import MedicalStoreSerializer
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.core.mail import send_mail
@@ -63,7 +65,6 @@ class UserSerializers(serializers.ModelSerializer):
         email.send()
 
         return user
-
 # =================== TOKEN LOGIN SERIALIZER ======================
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -74,8 +75,20 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        data = super().validate(attrs)
-
+        try:
+            data = super().validate(attrs)
+        except serializers.ValidationError as e:
+            # Handle Google users who haven't set password
+            if "No active account found" in str(e):
+                user = User.objects.get(email=attrs.get('email'))
+                if user.has_usable_password():
+                    raise e
+                else:
+                    raise serializers.ValidationError(
+                        "Your account was created with Google. Please use Google login."
+                    )
+            else:
+                raise e
         # Check if email is verified
         if not self.user.email_verified:
             raise serializers.ValidationError("Email not verified. Please check your email for verification link.")
@@ -115,15 +128,39 @@ class ClientSerializers(serializers.ModelSerializer):
 
 # =================== PHARMACIST SERIALIZER =======================
 class PharmacistSerializers(serializers.ModelSerializer):
-
-    # [SENU] mirror the name from the user table
     name = serializers.CharField(source='user.name', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
-    id = serializers.IntegerField(source='user.id', read_only=True)  # [SENU]: NEED IT TO UPDATE PROFILE
+    id = serializers.IntegerField(source='user.id', read_only=True)
+
+    medical_stores_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Pharmacist
-        fields = '__all__'
+        fields = [
+            'id',
+            'user_id',
+            'name',
+            'image_profile',
+            'image_license',
+            'has_store',
+            'medical_stores_ids',
+            'medical_stores_data', 
+        ]
+
+
+    def get_medical_stores_data(self, obj):
+        from medical_stores.models import MedicalStore
+        from medical_stores.serializers import MedicalStoreSerializer
+
+        if obj.has_store and obj.medical_stores_ids:
+            stores = MedicalStore.objects.filter(id__in=obj.medical_stores_ids)
+            if stores.exists():
+                return MedicalStoreSerializer(stores.first()).data  # Assuming single store logic
+        return None
+
+
+
+
 
 
 # =========== GET USER PROFILE WITH IMAGE HANDLING ================

@@ -43,8 +43,7 @@ INSTALLED_APPS = [
     'django_extensions',
     # [AMS] Middlewares apps 
     'rest_framework_simplejwt',
-    'corsheaders',
-    'channels', 
+    'corsheaders', 
     
     
     # [AMS] APPS WE CREATE 
@@ -57,6 +56,7 @@ INSTALLED_APPS = [
     'notifications',
     'cart',
     'AI_chat',
+
     # default
     'django.contrib.admin',
     'django.contrib.auth',
@@ -67,9 +67,12 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # [AMS] enable google at first 
+    
+    # 'django.middleware.security.SecurityMiddleware'
+    'django.middleware.security.SecurityMiddleware',
     # [OKS] cors
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -78,11 +81,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-     "corsheaders.middleware.CorsMiddleware",
 ]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  #[AMS] React default port
+    
+    "http://localhost:3001", 
     
 ]
 CORS_ALLOW_CREDENTIALS = True
@@ -131,6 +135,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -182,7 +188,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-CORS_ALLOW_ALL_ORIGINS = True
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -224,6 +230,8 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'amhmdslah104@gmail.com')  
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', 'amhmdslah104@gmail.com')  # For error emails
 SITE_NAME = "Drug Finder"
 SITE_URL= "http://localhost:8000/"
+# Add this line to disable SSL verification
+EMAIL_SSL_CERTFILE = None
 
 # [OKS] Stripe settings
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51OiLR4EI022bdeAWcMvH6jqAWfP04Bb73SgZcdWVK0p2s4XYowA2mNCExulBiMa14fBNu37diI2p9rOoCTa8owAG00DsytaBMr')
@@ -236,7 +244,6 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51OiLR4EI022bdeAWcMv
    
 #     # ...existing code...
 # ]
-STRIPE_SECRET_KEY=""
 
 # For Real-time 
 # ASGI_APPLICATION = 'config.asgi.application'
@@ -245,3 +252,22 @@ STRIPE_SECRET_KEY=""
 #         "BACKEND": "channels.layers.InMemoryChannelLayer"
 #     }
 # }
+
+
+################ [AMS]->INTEGRATION WITH NODE #########
+REDIS_URL = "redis://localhost:6379/0"
+NOTIFICATION_NODE_SERVER = "http://localhost:3001"  # Node server URL
+GOOGLE_CLIENT_ID = '830041637628-d3troc4aqg9q48q7rmncg1d62sc3q26b.apps.googleusercontent.com'
+
+# [AMS]:- for enable cors on google login 
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+
+#[AMS] make access atoken valid for 7 days
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  # Access token valid for 7 days
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # Refresh token valid for 30 days
+    'ROTATE_REFRESH_TOKENS': True,  # Rotate refresh tokens
+    'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens after rotation
+}

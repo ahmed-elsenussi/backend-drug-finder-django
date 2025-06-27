@@ -24,3 +24,27 @@ class IsPharmacistOwnerOrAdmin(permissions.BasePermission):
             pharmacist = getattr(obj.store, 'owner', None)
             return pharmacist and hasattr(pharmacist, 'user') and pharmacist.user == request.user
         return False
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Allow full CRUD for admin, read-only for others.
+    """
+    def has_permission(self, request, view):
+        if request.user and request.user.is_authenticated:
+            if request.user.is_staff or request.user.is_superuser or getattr(request.user, 'role', None) == 'admin':
+                return True
+        return request.method in permissions.SAFE_METHODS
+
+class IsAdminCRU(permissions.BasePermission):
+    """
+    Allow Create, Read, Update for admin, forbid DELETE.
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
+            if request.method == 'DELETE':
+                return False
+            return True
+        return False

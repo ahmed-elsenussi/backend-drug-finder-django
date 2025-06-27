@@ -1,19 +1,19 @@
 from rest_framework import viewsets
 from .models import MedicalDevice, Medicine
 from .serializers import MedicalDeviceSerializer, MedicineSerializer
-from .permissions import IsPharmacistOwnerOrAdmin
+from .permissions import IsPharmacistOwnerOrAdmin, IsAdminOrReadOnly
 from rest_framework.permissions import IsAuthenticated
 
 # MEDICAL DEVICE VIEWSET
 class MedicalDeviceViewSet(viewsets.ModelViewSet):
     serializer_class = MedicalDeviceSerializer
-    permission_classes = [IsAuthenticated, IsPharmacistOwnerOrAdmin]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly | IsPharmacistOwnerOrAdmin]
 
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
         # [SARA]: Admin can see all, pharmacist sees own, client sees all (read-only)
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             return MedicalDevice.objects.all()
         if user.role == 'pharmacist':
             return MedicalDevice.objects.filter(store__owner__user=user)
@@ -50,12 +50,12 @@ class MedicalDeviceViewSet(viewsets.ModelViewSet):
 # MEDICINE VIEWSET
 class MedicineViewSet(viewsets.ModelViewSet):
     serializer_class = MedicineSerializer
-    permission_classes = [IsAuthenticated, IsPharmacistOwnerOrAdmin]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly | IsPharmacistOwnerOrAdmin]
 
     def get_queryset(self):
         user = self.request.user
         # [SARA]: Admin can see all, pharmacist sees own, client sees all (read-only)
-        if user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             return Medicine.objects.all()
         if user.role == 'pharmacist':
             return Medicine.objects.filter(store__owner__user=user)

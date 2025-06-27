@@ -1,19 +1,27 @@
 from rest_framework import viewsets
 from .models import User, Client, Pharmacist
 from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from inventory.permissions import IsAdminOrReadOnly
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
-from django.db import transaction  
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from django.db import transaction  
 from django.shortcuts import render
+from users.permissions import IsSelfPharmacistOrAdmin
 
+# [AMS] GOOGLE AUTH #######################
+from rest_framework.views import APIView
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from django.conf import settings
+from rest_framework_simplejwt.tokens import RefreshToken
+import uuid
+#############################################
 
-# [SENU]:
-from .models import Pharmacist
 from .serializers import PharmacistSerializers
 
 # [SENU]
@@ -24,6 +32,13 @@ from .filters import PharmacistFilter
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializers
+    
+    def get_permissions(self):
+        # [SARA]: Allow anyone to create (register), require auth for other actions
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminOrReadOnly()]
+    
     def create(self, request, *args, **kwargs):
         #         ('guest', 'Guest'),('client', 'Client'),
         # ('pharmacist', 'Pharmacist'),('admin', 'Admin')
@@ -82,6 +97,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializers
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
 # get the client profile of the authenticated user
 # and allow them to update it{amira}
@@ -112,6 +128,7 @@ class ClientViewprofile(APIView):
 class PharmacistViewSet(viewsets.ModelViewSet):
     queryset = Pharmacist.objects.all()
     serializer_class = PharmacistSerializers
+    permission_classes = [IsAuthenticated, IsSelfPharmacistOrAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_class = PharmacistFilter
     
@@ -191,9 +208,66 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         return response
 
-    
+# [AMS] GOOGLE AUTHENTICATION (LOGIN)
+class GoogleLoginView(APIView):
+    def post(self, request):
+        token = request.data.get('token')
+        
+        try:
+            # Verify Google token
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                settings.GOOGLE_CLIENT_ID
+            )
 
-
+            # Get user email from Google payload
+            email = idinfo['email']
+            
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # Create new user if doesn't exist
+                user = User.objects.create(
+                    email=email,
+                    name=idinfo.get('name', ''),
+                    role='client',  # Default role
+                    email_verified=True,
+                    is_active=True
+                )
+                user.set_unusable_password()  # No password needed
+                user.save()
+                
+                # Create client profile
+                Client.objects.create(user=user)
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            # Prepare response
+            response_data = {
+                'access': str(access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'role': user.role,
+                }
+            }
+            
+            # Add pharmacist data if applicable
+            if user.role == 'pharmacist' and hasattr(user, 'pharmacist'):
+                response_data['user']['pharmacist'] = {
+                    'has_store': user.pharmacist.has_store
+                }
+            
+            return Response(response_data)
+            
+        except ValueError:
+            return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+###################################
 # [SENU]: getting the current user
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -331,6 +405,5 @@ def get_current_user_profile(request):
 #         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 #     except Exception as e:
 #         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
-                
-        
+
+

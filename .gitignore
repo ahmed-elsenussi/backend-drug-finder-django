@@ -4,4 +4,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+<<<<<<< HEAD
 .env
+=======
+
+# node modules 
+node_modules/
+node_modules/*
+>>>>>>> e0e94c3437fe8368503f6e172d895224be99ae58
