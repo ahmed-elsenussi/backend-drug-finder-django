@@ -1,28 +1,30 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 import json
 import traceback
 
-from .utils import answer_question, web_search_fallback
+from .utils import answer_question
 
 @csrf_exempt
+@require_POST
 def ask_question(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            question = data.get("question", "")
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        question = data.get("question", "").strip()
 
-            if not question:
-                return JsonResponse({"error": "Question is required."}, status=400)
+        if not question:
+            return JsonResponse({"error": "⚠️ Question is required."}, status=400)
 
-            # استخدام RAG system مع الدالة الجديدة
-            result = answer_question(question)
+        answer = answer_question(question)
+        return JsonResponse({"answer": answer}, status=200)
 
-            # fallback لو مفيش إجابة (موجود بالفعل في answer_question)
-            return JsonResponse({"answer": result})
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "❌ Invalid JSON format."}, status=400)
 
-        except Exception as e:
-            traceback.print_exc()  # طباعة الخطأ في الكونسول
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Only POST method allowed."}, status=405)
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({
+            "error": "Internal server error.",
+            "details": str(e)
+        }, status=500)

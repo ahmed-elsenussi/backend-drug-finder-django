@@ -6,43 +6,47 @@ from langchain_community.vectorstores import SupabaseVectorStore
 from langchain.text_splitter import CharacterTextSplitter
 from supabase import create_client
 
-# 1. تحميل متغيرات البيئة
+# Load environment variables
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# 2. إعداد Supabase Client
+# Check environment
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise EnvironmentError("❌ Please set SUPABASE_URL and SUPABASE_KEY in your .env file.")
+
+# Create Supabase client
 supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 3. إعداد Embedding Model
+# Embedding model
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-# 4. تحديد اسم الملف الذي تريد تحميله
-file_path = "C:/Users/ALL IN ONE/Desktop/Django_course/The-Top-25-Prescribed-Drugs-Submit.pdf"  # ← غيّريه حسب نوع الملف (pdf أو txt)
+# File path (update this path as needed)
+file_path = "C:/Users/ALL IN ONE/Desktop/Django_course/The-Top-25-Prescribed-Drugs-Submit.pdf"
 
-# 5. تحميل المستند المناسب بناءً على الامتداد
+# Load document
 if file_path.endswith(".txt"):
     loader = TextLoader(file_path, encoding="utf-8")
 elif file_path.endswith(".pdf"):
     loader = PyMuPDFLoader(file_path)
 else:
-    raise ValueError("❌ نوع الملف غير مدعوم. استخدمي .txt أو .pdf فقط")
+    raise ValueError("❌ Unsupported file format. Please use .txt or .pdf")
 
 documents = loader.load()
 
-# 6. تقسيم المستند إلى أجزاء صغيرة
+# Split into chunks
 splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 split_docs = splitter.split_documents(documents)
 
-# 7. إعداد VectorStore
+# Create or connect to Supabase vector store
 vectorstore = SupabaseVectorStore(
     client=supabase_client,
     embedding=embedding_model,
-    table_name="documents",      # تأكدي إنك أنشأتي الجدول بنفس الاسم
-    query_name="match_documents" # ده اسم query function في Supabase
+    table_name="documents",       # Must match your Supabase table
+    query_name="match_documents"  # Must match your Supabase RPC
 )
 
-# 8. رفع المستندات إلى Supabase
+# Upload to Supabase
 vectorstore.add_documents(split_docs)
 
-print("✅ تم رفع المستند إلى Supabase بنجاح.")
+print(f"✅ Successfully ingested {len(split_docs)} chunks to Supabase.")
