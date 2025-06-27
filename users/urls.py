@@ -1,6 +1,6 @@
 # users/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet, CustomTokenObtainPairView, verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist, ClientViewprofile, get_current_user_profile
+from .views import UserViewSet, CustomTokenObtainPairView, verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist, ClientViewprofile, get_current_user_profile,GoogleLoginView
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -20,6 +20,8 @@ urlpatterns = [
 
     # [SENU] : get current user with image
     path('me/', get_current_user_profile, name='get-current-user'),
+    
+    path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
 
     # [AMS] --> postponed for future 
     # path('forget-password/', forget_password, name='forget-password'),
