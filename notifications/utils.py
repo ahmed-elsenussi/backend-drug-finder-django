@@ -60,9 +60,16 @@ def send_notification(
         )
     if realtime:
         try:
-            # Use serializer to ensure consistent format
             serializer = NotificationSerializer(notification)
-            redis_conn.publish('notifications', json.dumps(serializer.data))
+            
+            # Publish to Redis channel
+            redis_conn.publish(
+                "notifications", 
+                json.dumps({
+                    **serializer.data, # type: ignore
+                    "user": user.id  # Add user ID for room targeting
+                })
+            )
         except Exception as e:
             logger.error(f"Redis publish error: {e}")
     
