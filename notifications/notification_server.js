@@ -19,10 +19,15 @@ const io = new Server(server, {
 const redisClient = redis.createClient({ url: "redis://localhost:6379" });
 redisClient.connect().then(() => {
   console.log("Connected to Redis");
-  redisClient.subscribe("notifications", (message) => {
+  redisClient.subscribe("notifications", (message, channel) => {
     try {
       const notification = JSON.parse(message);
+
+      // ADDED: Send to all rooms for this user
       io.to(`user_${notification.user}`).emit("new_notification", notification);
+
+      // ADDED: Also send to the specific socket room
+      io.emit(`user_${notification.user}`, notification);
     } catch (err) {
       console.error("Redis message error:", err);
     }
