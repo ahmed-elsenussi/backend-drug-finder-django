@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from django.db import transaction  
 from django.shortcuts import render
 from users.permissions import IsSelfPharmacistOrAdmin
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser # NEW ADDED FOR HANDLING UPDATE LICENSE STATUS
 
 # [AMS] GOOGLE AUTH #######################
 from rest_framework.views import APIView
@@ -103,11 +104,13 @@ class ClientViewSet(viewsets.ModelViewSet):
 # and allow them to update it{amira}
 class ClientViewprofile(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request):
         try:
             client = Client.objects.get(user=request.user)
-            serializer = ClientSerializers(client)
+            serializer = ClientSerializers(client, context={'request': request})
+
             return Response(serializer.data)
         except Client.DoesNotExist:
             return Response({'error': 'Client profile not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -115,7 +118,7 @@ class ClientViewprofile(APIView):
     def patch(self, request):
         try:
             client = Client.objects.get(user=request.user)
-            serializer = ClientSerializers(client, data=request.data, partial=True)
+            serializer = ClientSerializers(client, data=request.data, partial=True, context={'request': request})
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
@@ -131,6 +134,7 @@ class PharmacistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSelfPharmacistOrAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_class = PharmacistFilter
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # NEW ADDED FOR HANDLING UPDATE LICENSE STATUS
     
 
 #[AMS] 📩 Email Verification
@@ -296,12 +300,21 @@ def get_logged_in_pharmacist(request):
 # ============================================
 
 # [SENU]: HANDLE THE ERROR LOGIC OF NOT ADDING THE IMAGE IN THE PARENT USER TABLE
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def get_current_user_profile(request):
-    serializer = CurrentUserSerializer(request.user, context={'request': request})
-    return Response(serializer.data)
+    user = request.user
 
+    if request.method == 'GET':
+        serializer = CurrentUserSerializer(user, context={'request': request})
+        return Response(serializer.data)
+
+    elif request.method == 'PATCH':
+        serializer = UserSerializers(user, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 

@@ -65,6 +65,17 @@ class UserSerializers(serializers.ModelSerializer):
         email.send()
 
         return user
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+        return instance
 # =================== TOKEN LOGIN SERIALIZER ======================
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -119,19 +130,22 @@ class ClientSerializers(serializers.ModelSerializer):
     name = serializers.CharField(source='user.name', read_only= True)
     user_id = serializers.IntegerField(source='user.id', read_only = True)
     email = serializers.EmailField(source='user.email', read_only=True)
-
+    image_profile = serializers.ImageField(required=False)
 
     class Meta:
         model = Client
         fields = '__all__'
-
+    def get_image_profile(self, obj):
+        request = self.context.get('request')
+        if obj.image_profile:
+            return request.build_absolute_uri(obj.image_profile.url)
+        return None
 
 # =================== PHARMACIST SERIALIZER =======================
 class PharmacistSerializers(serializers.ModelSerializer):
     name = serializers.CharField(source='user.name', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     id = serializers.IntegerField(source='user.id', read_only=True)
-
     medical_stores_data = serializers.SerializerMethodField()
 
     class Meta:
@@ -142,10 +156,22 @@ class PharmacistSerializers(serializers.ModelSerializer):
             'name',
             'image_profile',
             'image_license',
+            'license_status',
             'has_store',
             'medical_stores_ids',
-            'medical_stores_data', 
+            'medical_stores_data',
         ]
+        extra_kwargs = {
+            'image_license': {'required': False}  # Make field optional for updates
+        }
+
+    def update(self, instance, validated_data):
+        # Handle file fields separately
+        if 'image_license' in self.context['request'].FILES:
+            instance.image_license = validated_data.get('image_license', instance.image_license)
+        instance.license_status = validated_data.get('license_status', instance.license_status)
+        instance.save()
+        return instance
 
 
     def get_medical_stores_data(self, obj):
