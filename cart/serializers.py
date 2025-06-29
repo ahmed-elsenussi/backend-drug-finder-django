@@ -3,6 +3,7 @@ from .models import Cart
 from inventory.models import Medicine
 from rest_framework.exceptions import ValidationError
 from medical_stores.models import MedicalStore 
+
 class CartSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
 
@@ -19,7 +20,9 @@ class CartSerializer(serializers.ModelSerializer):
         items = validated_data.get('items', [])
         store_id = validated_data.get('store')
         force_clear = False
-
+        
+        # إضافة متغير للتحكم في سلوك الجمع - لا حاجة له الآن
+        
         if request:
             force_clear = request.data.get('force_clear', False)
 
@@ -34,7 +37,8 @@ class CartSerializer(serializers.ModelSerializer):
                     raise ValidationError({'error': 'store field is required and could not be inferred from items.'})
             else:
                 raise ValidationError({'error': 'store field is required.'})
-
+        
+        store_instance = MedicalStore.objects.get(id=store_id)
         cart = Cart.objects.filter(user=user).first() if user else None
 
         if cart and cart.items:
@@ -59,25 +63,30 @@ class CartSerializer(serializers.ModelSerializer):
                 cart.total_price = 0
                 cart.save()
 
-        # Merge logic
+        # منطق إضافة المنتجات للكارت
         updated_items = cart.items.copy() if cart and cart.items else []
         for new_item in items:
             product_id = new_item.get('product')
-            quantity = new_item.get('quantity', 1)
             try:
                 medicine = Medicine.objects.get(id=product_id)
-                if medicine.store_id != store_id:
-                    raise ValidationError({'error': f'Product {product_id} does not belong to store {store_id}.'})
             except Medicine.DoesNotExist:
-                raise ValidationError({'error': f'Product {product_id} does not exist in store {store_id}.'})
+                 raise ValidationError({'error': f'Product {product_id} does not exist.'})
+            
             found = False
+            # البحث عن المنتج في الكارت الحالي
             for item in updated_items:
                 if item.get('product') == product_id:
-                    item['quantity'] = item.get('quantity', 1) + quantity
+                    # لو المنتج موجود، زود الكمية بـ 1
+                    item['quantity'] = item.get('quantity', 1) + 1
                     found = True
                     break
+            
+            # لو المنتج مش موجود، ضيفه بكمية 1
             if not found:
-                updated_items.append(new_item)
+                updated_items.append({
+                    'product': product_id,
+                    'quantity': 1
+                })
 
         # Final calculation
         subtotal = 0
@@ -86,7 +95,7 @@ class CartSerializer(serializers.ModelSerializer):
             product_id = item.get('product')
             quantity = item.get('quantity', 1)
             try:
-                medicine = Medicine.objects.get(id=product_id, store_id=store_id)
+                medicine = Medicine.objects.get(id=product_id)
             except Medicine.DoesNotExist:
                 raise ValidationError({'error': f'Medicine {product_id} not found.'})
             if quantity > medicine.stock:
@@ -97,7 +106,7 @@ class CartSerializer(serializers.ModelSerializer):
             checked_items.append({
                 'product': product_id,
                 'name': medicine.brand_name,
-                'image': medicine.image.url if medicine.image else None,
+                'image': request.build_absolute_uri(medicine.image.url) if medicine.image and request else None,
                 'quantity': quantity,
                 'price': float(medicine.price),
             })
@@ -113,9 +122,7 @@ class CartSerializer(serializers.ModelSerializer):
             cart.save()
             return cart
 
-       
         validated_data.pop('user', None)
         validated_data.pop('store', None)
-        store_instance = MedicalStore.objects.get(id=store_id)
 
         return Cart.objects.create(user=user, store=store_instance, **validated_data)
