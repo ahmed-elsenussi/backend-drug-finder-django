@@ -131,7 +131,6 @@ class PharmacistSerializers(serializers.ModelSerializer):
     name = serializers.CharField(source='user.name', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     id = serializers.IntegerField(source='user.id', read_only=True)
-
     medical_stores_data = serializers.SerializerMethodField()
 
     class Meta:
@@ -142,10 +141,22 @@ class PharmacistSerializers(serializers.ModelSerializer):
             'name',
             'image_profile',
             'image_license',
+            'license_status',
             'has_store',
             'medical_stores_ids',
-            'medical_stores_data', 
+            'medical_stores_data',
         ]
+        extra_kwargs = {
+            'image_license': {'required': False}  # Make field optional for updates
+        }
+
+    def update(self, instance, validated_data):
+        # Handle file fields separately
+        if 'image_license' in self.context['request'].FILES:
+            instance.image_license = validated_data.get('image_license', instance.image_license)
+        instance.license_status = validated_data.get('license_status', instance.license_status)
+        instance.save()
+        return instance
 
 
     def get_medical_stores_data(self, obj):
@@ -153,10 +164,19 @@ class PharmacistSerializers(serializers.ModelSerializer):
         from medical_stores.serializers import MedicalStoreSerializer
 
         if obj.has_store and obj.medical_stores_ids:
-            stores = MedicalStore.objects.filter(id__in=obj.medical_stores_ids)
+            # Ensure medical_stores_ids is a list
+            store_ids = obj.medical_stores_ids
+            if isinstance(store_ids, int):
+                store_ids = [store_ids]  # wrap single int in a list
+
+            stores = MedicalStore.objects.filter(id__in=store_ids)
             if stores.exists():
-                return MedicalStoreSerializer(stores.first()).data  # Assuming single store logic
+                return MedicalStoreSerializer(stores.first()).data 
         return None
+
+    
+
+
 
 
 

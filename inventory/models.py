@@ -26,6 +26,15 @@ class Medicine(models.Model):
     image = models.ImageField(upload_to='medicine/images/', null=True, blank=True)
 
 
+    # TO FAST THE SORTING
+    # ====================
+    class Meta:
+        indexes = [
+            models.Index(fields=['brand_name']),
+            models.Index(fields=['generic_name']),
+            models.Index(fields=['chemical_name']),
+        ]
+
 
 # MEDICAL DEVICES================
 class MedicalDevice(models.Model):

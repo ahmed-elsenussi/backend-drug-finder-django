@@ -5,7 +5,7 @@ from inventory.serializers import MedicineSerializer, MedicalDeviceSerializer
 # MEDICAL STORE SERIALIZER
 class MedicalStoreSerializer(serializers.ModelSerializer):
     #[OKS] add medicine to the serializer
-    medicines = serializers.SerializerMethodField()
+    medicines = MedicineSerializer(many=True, read_only=True, source='medicine_set')
 
     class Meta:
         model = MedicalStore
@@ -28,3 +28,4 @@ class MedicalStoreSerializer(serializers.ModelSerializer):
         if request and request.query_params.get('include_products') == 'true':
             return MedicalDeviceSerializer(obj.medical_devices.all(), many=True).data
         return None
+    

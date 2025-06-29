@@ -102,7 +102,7 @@ class Pharmacist(models.Model):
     image_license = models.ImageField(upload_to='pharmacist/license/')
     
     # for performance + for prevent non-licensed pharmacist
-    medical_stores_ids = models.JSONField(default=list)
+    medical_stores_ids = models.JSONField(default=list, blank=True)
     # is_approved = models.BooleanField(default=False)  # [SENU]: I DON'T NEED IT ANYMORE , REPLACED BY LICENSE_STATUS
 
     # SENU [for single store logic]: 
