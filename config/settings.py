@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     'reviews',
     'notifications',
     'cart',
-    'AI_chat',
+    # 'AI_chat', # Removed AI chat app
 
     # default
     'django.contrib.admin',
@@ -245,18 +245,18 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51OiLR4EI022bdeAWcMv
 #     # ...existing code...
 # ]
 
-# For Real-time 
-# ASGI_APPLICATION = 'config.asgi.application'
-# CHANNEL_LAYERS = {
+# For Real-time
+# ASGI_APPLICATION = 'config.asgi.application' # Removed for real-time
+# CHANNEL_LAYERS = { # Removed for real-time
 #     "default": {
 #         "BACKEND": "channels.layers.InMemoryChannelLayer"
 #     }
 # }
 
 
-################ [AMS]->INTEGRATION WITH NODE #########
+################ [AMS]->INTEGRATION WITH NODE ######### # All lines below removed for real-time
 REDIS_URL = "redis://localhost:6379/0"
-NOTIFICATION_NODE_SERVER = "http://localhost:3001"  # Node server URL
+# NOTIFICATION_NODE_SERVER = "http://localhost:3001"  # Node server URL
 GOOGLE_CLIENT_ID = '830041637628-d3troc4aqg9q48q7rmncg1d62sc3q26b.apps.googleusercontent.com'
 
 # [AMS]:- for enable cors on google login 

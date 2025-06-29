@@ -16,7 +16,7 @@ urlpatterns = [
     # Orders and Cart 
     path('orders/', include(order_router.urls)),
     path('cart/', include('cart.urls')),
-    path("AI-chat/", include("AI_chat.urls")),
+    # path("AI-chat/", include("AI_chat.urls")),
 
     # Additional APIs
     path('reviews/', include('reviews.urls')),
