@@ -2,19 +2,15 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from .models import Notification
-
 from .serializers import NotificationSerializer
-
-from users.models import User  # Import your User model
-
-# RealTime 
+from users.models import User
 import json
 import redis
 from django.conf import settings
 
 redis_conn = redis.Redis.from_url(settings.REDIS_URL)
-
 logger = logging.getLogger(__name__)
 
 def send_notification(
@@ -30,7 +26,6 @@ def send_notification(
 ):
     """
     Creates a notification for a user and optionally sends an email
-    Author:Ahmed M.Salah
     Args:
         user: User instance
         message: Notification message content
@@ -40,6 +35,7 @@ def send_notification(
         email_subject: Email subject
         email_template: Path to email template
         email_context: Context for email template
+        realtime: Whether to send realtime notification (default: True)
     """
     # Create the notification
     notification = Notification.objects.create(
@@ -58,6 +54,7 @@ def send_notification(
             template=email_template,
             context=email_context
         )
+    
     if realtime:
         try:
             serializer = NotificationSerializer(notification)
@@ -74,6 +71,7 @@ def send_notification(
             logger.error(f"Redis publish error: {e}")
     
     return notification
+
 def send_notification_email(
     user,
     notification,
@@ -104,24 +102,28 @@ def send_notification_email(
         'message': notification.message,
     })
     
-    # Render template if provided, otherwise use notification message
+    # Render template if provided
     if template:
         try:
-            message = render_to_string(template, context)
+            html_message = render_to_string(template, context)
+            plain_message = strip_tags(html_message)
         except Exception as e:
             logger.error(f"Error rendering email template: {e}")
-            message = notification.message
+            html_message = notification.message
+            plain_message = notification.message
     else:
-        message = notification.message
+        html_message = notification.message
+        plain_message = notification.message
     
     # Send email
     try:
         send_mail(
             subject=subject,
-            message=message,
+            message=plain_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
-            fail_silently=False
+            fail_silently=False,
+            html_message=html_message
         )
         return True
     except Exception as e:
@@ -135,5 +137,3 @@ def mark_user_notifications_as_read(user):
         is_read=False
     ).update(is_read=True)
     return updated
-
-

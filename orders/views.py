@@ -14,6 +14,7 @@ from .permissions import OrderAccessPermission
 from rest_framework.pagination import PageNumberPagination 
 from payments.models import Payment
 from inventory.permissions import IsAdminCRU
+# [AMS] Notification 
 from notifications.utils import send_notification 
 
 
@@ -80,12 +81,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             pharmacist_user = order.store.owner.user  # [OKS] Get the pharmacist user from the store owner
             send_notification(
                 user=pharmacist_user,
-                message=f"You have a new order #{order.id} from {order.client.user.username}",
-                notification_type='order',
+                message=f"You have a new order #{order.id} from {order.client.user.name}",
+                notification_type='message',
                 data={
                     'order_id': order.id,
-                    'client_name': order.client.user.username,
+                    'client_name': order.client.user.name,
                     'total_amount': str(order.total_price)
+                    
                 }
             )
 
@@ -128,7 +130,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 if intent.status == 'succeeded':
                     order.order_status = 'paid'
                     order.save()
-            
+                      # Send notification to client
+                    send_notification(
+                        user=order.client.user,
+                        message=f"Payment successful for order #{order.id}",
+                        notification_type='system',
+                        data={'order_id': order.id}
+                    )
             except Exception as e:
              raise ValidationError(f"Stripe error: {str(e)}")
         else:
@@ -184,7 +192,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         # [OKS] Update status for the order
         order.order_status = new_status
         order.save()
-        
+        send_notification(
+            user=order.client.user,
+            message=f"Order #{order.id} status updated to {new_status}",
+            notification_type='reminder',
+            send_email=True,
+            email_subject=f"Order Status Update",
+            email_template='emails/order_status_update.html',
+            email_context={'order': order, 'new_status': new_status}
+        )
         return Response({
             'status': 'success',
             'order_id': order.id,
