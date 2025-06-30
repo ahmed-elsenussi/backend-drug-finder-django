@@ -38,7 +38,10 @@ class MedicalDeviceViewSet(viewsets.ModelViewSet):
         if user.role == 'pharmacist':
             return queryset.filter(store__owner__user=user)
         if user.role == 'client':
-            return queryset
+            # [AMS]:- fix logic here to Exclude medicines from stores where pharmacist has pending license status
+            return queryset.filter(store__owner__license_status='approved')
+
+            # ####################
         return MedicalDevice.objects.none()
 
     def perform_create(self, serializer):
@@ -95,7 +98,10 @@ class MedicineViewSet(viewsets.ModelViewSet):
         if user.role == 'pharmacist':
             return queryset.filter(store__owner__user=user)
         if user.role == 'client':
-            return queryset
+            # [AMS]:- fix logic here to Exclude medicines from stores where pharmacist has pending license status
+            # Only include devices from stores where the pharmacist is approved
+            return queryset.filter(store__owner__license_status='approved')
+            # ####################
         return Medicine.objects.none()
 
     def perform_create(self, serializer):
