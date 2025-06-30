@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>License Application Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f44336; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .reason { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #f44336; margin: 15px 0; }
+        .footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>License Application Update</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ user.name }},</p>
+            <p>We regret to inform you that your pharmacy license application has been rejected.</p>
+            
+            {% if reason %}
+            <div class="reason">
+                <strong>Reason:</strong>
+                <p>{{ reason }}</p>
+            </div>
+            {% endif %}
+            
+            <p>You may submit a new application after addressing the issues mentioned above.</p>
+            <p>If you believe this is a mistake or need clarification, please contact our support team.</p>
+            <p>Best regards,<br>Drug Finder Team</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message. Please do not reply directly to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

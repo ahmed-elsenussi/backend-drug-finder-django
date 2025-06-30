@@ -21,6 +21,10 @@ from google.auth.transport import requests
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
+
+# [AMS] notification utilis ####
+from notifications.utils import send_notification
+
 #############################################
 
 from .serializers import PharmacistSerializers
@@ -135,7 +139,55 @@ class PharmacistViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = PharmacistFilter
     parser_classes = [MultiPartParser, FormParser, JSONParser]  # NEW ADDED FOR HANDLING UPDATE LICENSE STATUS
-    
+    # [AMS]
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Check for license status change
+        old_license_status = instance.license_status
+        new_license_status = request.data.get('license_status')
+        
+        # Perform the update
+        self.perform_update(serializer)
+        
+        # Handle notifications after successful update
+        if old_license_status != new_license_status:
+            self.handle_license_status_notification(instance, new_license_status, request.data.get('rejection_reason'))
+        
+        return Response(serializer.data)
+
+    def handle_license_status_notification(self, pharmacist, new_status, rejection_reason=None):
+        user = pharmacist.user
+        if new_status == 'approved':
+            send_notification(
+                user=user,
+                message="Your pharmacy license has been approved!",
+                notification_type='message',
+                send_email=True,
+                email_subject="License Approved",
+                email_template='emails/license_approved.html',
+                email_context={
+                    'user': user,
+                    'pharmacist': pharmacist
+                }
+            )
+        elif new_status == 'rejected':
+            send_notification(
+                user=user,
+                message="Your pharmacy license application was rejected",
+                notification_type='alert',
+                send_email=True,
+                email_subject="License Application Update",
+                email_template='emails/license_rejected.html',
+                email_context={
+                    'user': user,
+                    'pharmacist': pharmacist,
+                    'reason': rejection_reason or "Not specified"
+                }
+            )
 
 #[AMS] 📩 Email Verification
 @api_view(['GET'])
