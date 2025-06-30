@@ -5,12 +5,8 @@ from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
 import stripe
 from rest_framework.decorators import action
-<<<<<<< HEAD
 from django.db import transaction
-=======
 from django_filters.rest_framework import DjangoFilterBackend
->>>>>>> bdb602bb126edd12cc6baf720e581a5c4a40aec0
-
 from .models import Order
 from cart.models import Cart
 from payments.models import Payment
