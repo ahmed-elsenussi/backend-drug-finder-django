@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('inventory', '0002_medicaldevice_image_medicaldevice_price_and_more'),
-        ('inventory', '0002_medicaldevice_image_medicine_image'),
     ]
 
     operations = [

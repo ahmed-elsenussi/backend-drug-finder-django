@@ -5,7 +5,11 @@ from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.conf import settings
 import stripe
 from rest_framework.decorators import action
+<<<<<<< HEAD
 from django.db import transaction
+=======
+from django_filters.rest_framework import DjangoFilterBackend
+>>>>>>> bdb602bb126edd12cc6baf720e581a5c4a40aec0
 
 from .models import Order
 from cart.models import Cart
@@ -15,14 +19,18 @@ from .permissions import OrderAccessPermission
 from inventory.permissions import IsAdminCRU
 from inventory.models import Medicine  # Using Medicine model directly
 from notifications.utils import send_notification 
+from .filters import OrderFilter
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+# [SARA]: Filtering enabled for OrderViewSet (store, order_status, client)
 class OrderViewSet(viewsets.ModelViewSet):
     # [SARA]: Use OrderSerializer for all order operations
     serializer_class = OrderSerializer
     # [SARA]: Admins (IsAdminCRU) can CRU, others use OrderAccessPermission
     permission_classes = [IsAuthenticated, IsAdminCRU | OrderAccessPermission]
+    filter_backends = [DjangoFilterBackend]  # [SARA]
+    filterset_class = OrderFilter  # [SARA]
 
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
