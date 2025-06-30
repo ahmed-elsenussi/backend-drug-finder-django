@@ -88,7 +88,6 @@ multidict==6.5.1
 mypy_extensions==1.1.0
 networkx==3.5
 numpy==2.3.1
-# Removed all problematic nvidia-* packages
 oauthlib==3.3.1
 orjson==3.10.18
 packaging==24.2
@@ -109,7 +108,6 @@ pydantic==2.11.7
 pydantic-settings==2.10.1
 pydantic_core==2.33.2
 Pygments==2.19.2
-# Downgraded PyJWT to 2.9.0 to avoid conflict with simplejwt
 PyJWT==2.9.0
 pyparsing==3.2.3
 pytest==8.4.1
