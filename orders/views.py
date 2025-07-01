@@ -16,8 +16,15 @@ from inventory.permissions import IsAdminCRU
 from inventory.models import Medicine  # Using Medicine model directly
 from notifications.utils import send_notification 
 from .filters import OrderFilter
+from rest_framework.pagination import PageNumberPagination
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# [SARA]: Custom pagination class for orders (limit 10)
+class OrderPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 # [SARA]: Filtering enabled for OrderViewSet (store, order_status, client)
 class OrderViewSet(viewsets.ModelViewSet):
@@ -27,13 +34,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminCRU | OrderAccessPermission]
     filter_backends = [DjangoFilterBackend]  # [SARA]
     filterset_class = OrderFilter  # [SARA]
+    pagination_class = OrderPagination  # [SARA]
 
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
         queryset = Order.objects.none() 
        
-        # [OK - SARA] pagination with authorization 
+        # [OK - SARA] filtering with authorization 
         if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             queryset = Order.objects.all().order_by('-timestamp')
         elif user.role == 'pharmacist':

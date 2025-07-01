@@ -25,7 +25,8 @@ from rest_framework.response import Response
 
 
 class MedicalStoreViewSet(viewsets.ModelViewSet):
-    queryset = MedicalStore.objects.all()
+    #[AMS]:- Only show stores where pharmacist's license is approved
+    queryset = MedicalStore.objects.filter(owner__license_status='approved')
     serializer_class = MedicalStoreSerializer
 
     filter_backends = [DjangoFilterBackend, SearchFilter]
@@ -33,8 +34,22 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     search_fields = ['store_name', 'store_type']
     medicines = serializers.SerializerMethodField() 
     permission_classes=[IsAuthenticated]
+    # [AMS]:- to make admin can see all stores 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()  # Starts with approved stores only
+        
+        # Admins can see all stores regardless of license status
+        if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
+            return MedicalStore.objects.all()
+            
+        # Pharmacists can only see their own stores
+        if user.role == 'pharmacist':
+            return queryset.filter(owner__user=user)
+            
+        # Clients see only approved stores (default queryset already handles this)
+        return queryset
 
-    
 
 
     def perform_create(self, serializer):
