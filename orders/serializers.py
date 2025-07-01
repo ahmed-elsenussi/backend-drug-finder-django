@@ -21,6 +21,7 @@ class OrderSerializer(serializers.ModelSerializer):
         depth = 1
 
     def get_items_details(self, obj):
+        request = self.context.get('request', None)  # [SARA] Get request for absolute URI
         results = []
         for item in obj.items:
             item_id = item.get('item_id')
@@ -28,9 +29,15 @@ class OrderSerializer(serializers.ModelSerializer):
 
             try:
                 medicine = Medicine.objects.get(id=item_id)
+                # [SARA] Use absolute URI for image
+                if medicine.image and request is not None:
+                    image_url = request.build_absolute_uri(medicine.image.url)
+                else:
+                    image_url = medicine.image.url if medicine.image else None
                 results.append({
                     "name": medicine.brand_name,
                     "price": medicine.price,
+                    "image": image_url,
                     "quantity": quantity
                 })
             except Medicine.DoesNotExist:
