@@ -34,7 +34,9 @@ class Medicine(models.Model):
             models.Index(fields=['generic_name']),
             models.Index(fields=['chemical_name']),
         ]
-
+    # [AMS]: Add STR method to present the Medicine in a human-readable format
+    def __str__(self):
+        return f"{self.brand_name} - {self.generic_name}"
 
 # MEDICAL DEVICES================
 class MedicalDevice(models.Model):
@@ -51,3 +53,8 @@ class MedicalDevice(models.Model):
 
     # [SARA]: Added image field for medical device
     image = models.ImageField(upload_to='medicaldevice/images/', null=True, blank=True)
+    
+    
+    # [AMS]: Add STR method to present the device in a human-readable format
+    def __str__(self):
+        return f"{self.model_number} - {self.serial_number}"
