@@ -45,6 +45,9 @@ class Order(models.Model):
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total_with_fees = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+
 
     # created at, updated at
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -60,3 +63,4 @@ client ---> cart [removed]
 
 '''
 
+# Then update your OrderViewSet methods:
