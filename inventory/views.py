@@ -3,17 +3,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import MedicalDevice, Medicine
 from .serializers import MedicalDeviceSerializer, MedicineSerializer
 from .permissions import IsPharmacistOwnerOrAdmin, IsAdminOrReadOnly
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from django.db.models.functions import Lower
 from .filters import MedicineFilter
-
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
 
 # [SARA]: Custom pagination class with default 12 per page
 class DefaultPagination(PageNumberPagination):
     page_size = 12
     page_size_query_param = 'page_size'
-
 
 # ============================
 # 🩺 MEDICAL DEVICE VIEWSET
@@ -40,17 +41,14 @@ class MedicalDeviceViewSet(viewsets.ModelViewSet):
         if user.role == 'client':
             # [AMS]:- fix logic here to Exclude medicines from stores where pharmacist has pending license status
             return queryset.filter(store__owner__license_status='approved')
-
             # ####################
         return MedicalDevice.objects.none()
 
     def perform_create(self, serializer):
         user = self.request.user
-
         # [SENU]:DEBUG
         print("Creating Medical Device:")
         print(f"User: {user}")
-
         # [SARA]: Only allow creating for pharmacist's own store
         if user.role == 'pharmacist':
             store = serializer.validated_data.get('store')
@@ -75,7 +73,6 @@ class MedicalDeviceViewSet(viewsets.ModelViewSet):
                 raise PermissionError('You can only delete devices from your own store.')
         instance.delete()
 
-
 # ====================
 # 💊 MEDICINE VIEWSET
 # ====================
@@ -91,7 +88,8 @@ class MedicineViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Medicine.objects.select_related('store')  # Optimize database query
+        # [SENU]: Filter out soft-deleted medicines by default
+        queryset = Medicine.objects.select_related('store').filter(is_deleted=False)
         # [SARA]: Admin can see all, pharmacist sees own, client sees all (read-only)
         if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             return queryset
@@ -101,23 +99,18 @@ class MedicineViewSet(viewsets.ModelViewSet):
             # [AMS]:- fix logic here to Exclude medicines from stores where pharmacist has pending license status
             # Only include devices from stores where the pharmacist is approved
             return queryset.filter(store__owner__license_status='approved')
-            # ####################
         return Medicine.objects.none()
 
     def perform_create(self, serializer):
         user = self.request.user
-
         # [SENU]:DEBUG
         print(f"Create Medicine - User: {user}")
         print(f"Serializer Data: {serializer.validated_data}")
-
         # [SARA]: Only allow creating for pharmacist's own store
         if user.role == 'pharmacist':
             store = serializer.validated_data.get('store')
-
             # [SENU]:DEBUG
             print(f"Store: {store}")
-
             if not store or store.owner.user != user:
                 raise PermissionError('You can only add medicines to your own store.')
         serializer.save()
@@ -137,4 +130,82 @@ class MedicineViewSet(viewsets.ModelViewSet):
         if user.role == 'pharmacist':
             if not instance.store or instance.store.owner.user != user:
                 raise PermissionError('You can only delete medicines from your own store.')
-        instance.delete()
+        # [SENU]: Implement soft delete by setting is_deleted to True
+        instance.is_deleted = True
+        instance.save()
+
+    # FOR ADMIN YA SARAAAAAAAAAAAAAAAAAAA
+    # [SENU]: Endpoint to retrieve soft-deleted medicines
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def deleted(self, request):
+        """Endpoint to retrieve all soft-deleted medicines"""
+        print("DEBUG: Reached deleted endpoint")  # [SENU]: Debug
+        queryset = Medicine.objects.select_related('store').filter(is_deleted=True)
+        print(f"DEBUG: Queryset count: {queryset.count()}")  # [SENU]: Debug
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # FOR THE PHARAMACIST TO GET THE DATA OF THE DELETED MEDICINE FOR HIS STORE
+    # [SENU]: New endpoint to retrieve soft-deleted medicines for a specific store
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def deleted_by_store(self, request):
+        """Endpoint to retrieve soft-deleted medicines for a specific store"""
+        store_id = request.query_params.get('store_id')
+        print(f"DEBUG: Reached deleted_by_store endpoint, store_id: {store_id}")  # [SENU]: Debug
+        queryset = Medicine.objects.select_related('store').filter(is_deleted=True)
+        
+        if store_id:
+            try:
+                store_id = int(store_id)
+                queryset = queryset.filter(store__id=store_id)
+                print(f"DEBUG: Filtered by store_id={store_id}, count: {queryset.count()}")  # [SENU]: Debug
+            except ValueError:
+                return Response({"detail": "Invalid store_id. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"detail": "store_id parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    # [NEW ENDPOINT] FOR ARCHIVED AND OUT-OF-STOCK MEDICINES
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def archived_out_of_stock(self, request):
+        """Endpoint to retrieve medicines that are both archived (is_deleted=True) AND out of stock (stock=0)"""
+        store_id = request.query_params.get('store_id')
+        print(f"DEBUG: Reached archived_out_of_stock endpoint, store_id: {store_id}")  # [SENU]: Debug
+        
+        # Filter for both conditions
+        queryset = Medicine.objects.select_related('store').filter(
+            is_deleted=True,
+            stock=0
+        )
+        
+        if store_id:
+            try:
+                store_id = int(store_id)
+                queryset = queryset.filter(store__id=store_id)
+                print(f"DEBUG: Filtered by store_id={store_id}, count: {queryset.count()}")  # [SENU]: Debug
+            except ValueError:
+                return Response({"detail": "Invalid store_id. It must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
+    

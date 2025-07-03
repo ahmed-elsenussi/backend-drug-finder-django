@@ -1,3 +1,4 @@
+# inventory/models.py
 from django.db import models
 from medical_stores.models import MedicalStore
 
@@ -6,6 +7,8 @@ class Medicine(models.Model):
     # mandatory
     stock = models.PositiveIntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    # [SENU]: Added for soft delete functionality
+    is_deleted = models.BooleanField(default=False)
 
     # info for the page
     generic_name = models.CharField(max_length=255)
@@ -25,7 +28,6 @@ class Medicine(models.Model):
     # [SARA]: Added image field for medicine
     image = models.ImageField(upload_to='medicine/images/', null=True, blank=True)
 
-
     # TO FAST THE SORTING
     # ====================
     class Meta:
@@ -33,6 +35,8 @@ class Medicine(models.Model):
             models.Index(fields=['brand_name']),
             models.Index(fields=['generic_name']),
             models.Index(fields=['chemical_name']),
+            # [SENU]: Added index for faster filtering of soft-deleted records
+            models.Index(fields=['is_deleted']),
         ]
     # [AMS]: Add STR method to present the Medicine in a human-readable format
     def __str__(self):
@@ -53,7 +57,6 @@ class MedicalDevice(models.Model):
 
     # [SARA]: Added image field for medical device
     image = models.ImageField(upload_to='medicaldevice/images/', null=True, blank=True)
-    
     
     # [AMS]: Add STR method to present the device in a human-readable format
     def __str__(self):
