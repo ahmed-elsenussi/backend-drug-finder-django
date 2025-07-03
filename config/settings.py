@@ -201,6 +201,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+#[OKS] order
+DEFAULT_SHIPPING_COST = 10.00  # Default shipping cost when location unavailable
+SALES_TAX_RATE = 0.05  # 8% sales tax
 
 
 # [SENU] FOR IMAGE

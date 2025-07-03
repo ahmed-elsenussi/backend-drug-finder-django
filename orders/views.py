@@ -1,3 +1,4 @@
+
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -8,17 +9,25 @@ from rest_framework.decorators import action
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 
+from geopy.distance import geodesic  # [OKS] For distance calculation
 from .models import Order
-from cart.models import Cart
 from payments.models import Payment
-from .serializers import OrderSerializer, CartSerializer
+from .serializers import OrderSerializer
 from .permissions import OrderAccessPermission
 from inventory.permissions import IsAdminCRU
-from inventory.models import Medicine  # Using Medicine model directly
+from inventory.models import Medicine
 from notifications.utils import send_notification 
 from .filters import OrderFilter
+from rest_framework.pagination import PageNumberPagination
+import decimal
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# [SARA]: Custom pagination class for orders (limit 10)
+class OrderPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 # [SARA]: Filtering enabled for OrderViewSet (store, order_status, client)
 class OrderViewSet(viewsets.ModelViewSet):
@@ -28,13 +37,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminCRU | OrderAccessPermission]
     filter_backends = [DjangoFilterBackend]  # [SARA]
     filterset_class = OrderFilter  # [SARA]
+    pagination_class = OrderPagination  # [SARA]
 
     # [SARA]: Custom queryset based on user role
     def get_queryset(self):
         user = self.request.user
         queryset = Order.objects.none() 
        
-        # [OK - SARA] pagination with authorization 
+        # [OK - SARA] filtering with authorization 
         if user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin':
             queryset = Order.objects.all().order_by('-timestamp')
         elif user.role == 'pharmacist':
@@ -50,8 +60,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         data = request.data
         payment_method = data.get("payment_method", "cash")
         store_id = data.get("store")
-         #[OKS] add transaction [multiple steps that must be treated as one unit of work] 
-        with transaction.atomic(): #[OKS]  block happen atomically
+        
+        #[OKS] add transaction [multiple steps that must be treated as one unit of work] 
+        with transaction.atomic(): #[OKS] block happen atomically
             try:
                 self._validate_medicine_quantities(data.get('items', []))
             except ValidationError as e:
@@ -78,7 +89,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             else:
                 raise PermissionError('Only clients and admins can create orders.')
             
-            # Update medicine quantities
+            # [OKS] Calculate shipping cost before updating totals
+            shipping_cost = self._calculate_shipping_cost(order)
+            # [OKS] Calculate tax based on subtotal (before shipping)
+            tax = self._calculate_tax(order.total_price)
+            
+            # [OKS] Update order with shipping and tax
+            order.shipping_cost = shipping_cost
+            order.tax = tax
+            order.total_with_fees = order.total_price + shipping_cost + tax    
+            order.save()
+            
+            # [OKS] Update medicine quantities
             self._update_medicine_quantities(order.items)
             
             #[OKS] notify the pharmacist
@@ -91,27 +113,29 @@ class OrderViewSet(viewsets.ModelViewSet):
                     data={
                         'order_id': order.id,
                         'client_name': order.client.user.name,
-                        'total_amount': str(order.total_price)
+                        'total_amount': str(order.total_price),
+                        'shipping_cost': str(shipping_cost),
+                        'tax': str(tax)
                     }
                 )
 
-            # [OKS] Remove the user's cart safely
-            try:
-                Cart.objects.get(user=cart_user).delete()
-            except Cart.DoesNotExist:
-                pass  
+         
 
-            # [OKS] Create Payment record
+            # [OKS] Create Payment record (include total with shipping and tax)
+            total_with_fees = order.total_with_fees
             Payment.objects.create(
                 order=order,
                 client=order.client,
-                amount=order.total_price,
+                amount=total_with_fees,
                 payment_method=payment_method,
                 status='pending' if payment_method == 'cash' else 'initiated'
             )
 
             response_data = {
-                'order': OrderSerializer(order).data
+                'order': OrderSerializer(order).data,
+                'shipping_cost': shipping_cost,
+                'tax': tax,
+                'total_with_fees': total_with_fees
             }
 
             # [OKS] Handle Stripe if needed
@@ -120,10 +144,15 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.save()
             elif payment_method == 'card':
                 try:
+                    # [OKS] Include shipping and tax in Stripe payment
                     intent = stripe.PaymentIntent.create(
-                        amount=int(order.total_price * 100),
+                        amount=int(float(total_with_fees) * 100),  # Convert to cents
                         currency='usd',
-                        metadata={'order_id': order.id},
+                        metadata={
+                            'order_id': order.id,
+                            'shipping_cost': str(shipping_cost),
+                            'tax': str(tax)
+                        },
                         payment_method_types=['card'],
                         capture_method='automatic'
                     )
@@ -137,7 +166,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                             user=order.client.user,
                             message=f"Payment successful for order #{order.id}",
                             notification_type='system',
-                            data={'order_id': order.id}
+                            data={
+                                'order_id': order.id,
+                                'total_paid': str(total_with_fees)
+                            }
                         )
                 except Exception as e:
                     raise ValidationError(f"Stripe error: {str(e)}")
@@ -145,10 +177,34 @@ class OrderViewSet(viewsets.ModelViewSet):
                 raise ValidationError('Invalid payment method.')
 
             return Response(response_data, status=status.HTTP_201_CREATED)
+    
+    # [OKS] Calculate shipping cost based on distance
+    def _calculate_shipping_cost(self, order):
+        if not order.store or not order.client:
+            return decimal.Decimal('0')  
         
+        store_location = (order.store.latitude, order.store.longitude)
+        client_location = (order.client.default_latitude, order.client.default_longitude)
+        
+        try:
+            distance_km = geodesic(store_location, client_location).kilometers
+        except:
+            return decimal.Decimal(str(settings.DEFAULT_SHIPPING_COST))
+        
+        if distance_km <= 5:
+            return decimal.Decimal('5.00')
+        elif distance_km <= 20:
+            return decimal.Decimal('10.00')
+        elif distance_km <= 50:
+            return decimal.Decimal('15.00')
+        else:
+            return decimal.Decimal('25.00')
 
-       # [OKS] Validate medicine quantities before order creation
- 
+    def _calculate_tax(self, subtotal):
+        tax_rate = decimal.Decimal(str(getattr(settings, 'SALES_TAX_RATE', 0.08)))
+        return (subtotal * tax_rate).quantize(decimal.Decimal('0.00'))
+
+    # [OKS] Validate medicine quantities before order creation
     def _validate_medicine_quantities(self, items):
         if not items:
             raise ValidationError("Order must contain at least one item")
@@ -171,8 +227,6 @@ class OrderViewSet(viewsets.ModelViewSet):
             except Medicine.DoesNotExist:
                 raise ValidationError(f"Medicine with id {medicine_id} does not exist")
 
-
-
     # [OKS] update medicine "stock"
     def _update_medicine_quantities(self, items):
         for item in items:
@@ -182,20 +236,30 @@ class OrderViewSet(viewsets.ModelViewSet):
             medicine.stock -= quantity
             medicine.save()
 
-
     def perform_update(self, serializer):
         user = self.request.user
+        instance = self.get_object()
+
         # [SARA]: Pharmacist can only update status for their store's orders, admin can update all
         if user.role == 'pharmacist':
             allowed_fields = {'order_status'}
             if not set(self.request.data.keys()).issubset(allowed_fields):
                 raise PermissionError('Pharmacists can only update order status.')
+            
+
+       # [OKS]  Clients can cancel only if order is still pending
+        if user.role == 'client':
+            requested_status = self.request.data.get('order_status')
+            if requested_status != 'cancelled':
+                raise PermissionDenied("Clients can only cancel their order.")
+            if instance.order_status != 'pending':
+                raise PermissionDenied("You can only cancel orders that are still pending.")
+
         serializer.save()
 
     # [OKS] Custom action to update order status
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):
-        """Custom action to update order status"""
         order = self.get_object()
         new_status = request.data.get('status')
         
@@ -213,7 +277,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # [OKA] Special validation for paid status
+        # [OKS] Special validation for paid status
         if new_status == 'paid':
             if order.payment_method != 'card':
                 return Response(
@@ -229,6 +293,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         # [OKS] Update status for the order
         order.order_status = new_status
         order.save()
+        
+        # [OKS] Include shipping and tax in notification
+        notification_data = {
+            'order': order,
+            'new_status': new_status,
+            'shipping_cost': order.shipping_cost,
+            'tax': order.tax,
+            'total_with_fees': order.total_price + order.shipping_cost + order.tax
+        }
+        
         send_notification(
             user=order.client.user,
             message=f"Order #{order.id} status updated to {new_status}",
@@ -236,14 +310,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             send_email=True,
             email_subject=f"Order Status Update",
             email_template='emails/order_status_update.html',
-            email_context={'order': order, 'new_status': new_status}
+            email_context=notification_data
         )
         return Response({
             'status': 'success',
             'order_id': order.id,
-            'new_status': order.order_status
+            'new_status': order.order_status,
+            'shipping_cost': order.shipping_cost,
+            'tax': order.tax,
+            'total_with_fees': order.total_price + order.shipping_cost + order.tax
         })
 
-class CartViewSet(viewsets.ModelViewSet):
-    queryset = Cart.objects.all()
-    serializer_class = CartSerializer
