@@ -13,7 +13,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # Check environment
 if not SUPABASE_URL or not SUPABASE_KEY:
-    raise EnvironmentError("❌ Please set SUPABASE_URL and SUPABASE_KEY in your .env file.")
+    raise EnvironmentError(" Please set SUPABASE_URL and SUPABASE_KEY in your .env file.")
 
 # Create Supabase client
 supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -22,7 +22,7 @@ supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 # File path (update this path as needed)
-file_path = "C:/Users/ALL IN ONE/Desktop/Django_course/The-Top-25-Prescribed-Drugs-Submit.pdf"
+file_path = "C:/Users/ALL IN ONE/Desktop/Django_course/prject-information.pdf"
 
 # Load document
 if file_path.endswith(".txt"):
@@ -30,7 +30,7 @@ if file_path.endswith(".txt"):
 elif file_path.endswith(".pdf"):
     loader = PyMuPDFLoader(file_path)
 else:
-    raise ValueError("❌ Unsupported file format. Please use .txt or .pdf")
+    raise ValueError(" Unsupported file format. Please use .txt or .pdf")
 
 documents = loader.load()
 
@@ -49,4 +49,4 @@ vectorstore = SupabaseVectorStore(
 # Upload to Supabase
 vectorstore.add_documents(split_docs)
 
-print(f"✅ Successfully ingested {len(split_docs)} chunks to Supabase.")
+print(f"Successfully ingested {len(split_docs)} chunks to Supabase.")
