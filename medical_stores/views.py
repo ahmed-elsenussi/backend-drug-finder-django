@@ -84,13 +84,7 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
     #[OKS] method search for pharmacies with a specific medicine
     @action(detail=False, methods=['get'], url_path='with-medicine')
-    def stores_with_medicine(self, request, format=None):  # Add format parameter here
-        """
-        Returns pharmacies that have a specific medicine in stock.
-        Parameters:
-        - medicine_name: Name of the medicine to search for (brand_name or generic_name)
-        - min_quantity: (optional) minimum quantity available (default=1)
-        """
+    def stores_with_medicine(self, request, format=None): 
         medicine_name = request.query_params.get('medicine_name')
 
         if not medicine_name:
@@ -103,7 +97,7 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
         
         store_to_medicines = {}
         for med in matched_medicines:
-            store_id = med.store.id  #
+            store_id = med.store.id  
             store_to_medicines.setdefault(store_id, []).append(med)
         store_ids = list(store_to_medicines.keys())
         stores = MedicalStore.objects.filter(id__in=store_ids)

@@ -237,11 +237,23 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
+        instance = self.get_object()
+
         # [SARA]: Pharmacist can only update status for their store's orders, admin can update all
         if user.role == 'pharmacist':
             allowed_fields = {'order_status'}
             if not set(self.request.data.keys()).issubset(allowed_fields):
                 raise PermissionError('Pharmacists can only update order status.')
+            
+
+       # [OKS]  Clients can cancel only if order is still pending
+        if user.role == 'client':
+            requested_status = self.request.data.get('order_status')
+            if requested_status != 'cancelled':
+                raise PermissionDenied("Clients can only cancel their order.")
+            if instance.order_status != 'pending':
+                raise PermissionDenied("You can only cancel orders that are still pending.")
+
         serializer.save()
 
     # [OKS] Custom action to update order status

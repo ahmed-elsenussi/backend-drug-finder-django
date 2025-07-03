@@ -12,9 +12,16 @@ class OrderAccessPermission(permissions.BasePermission):
         # Admin can do anything
         if user.is_staff or user.is_superuser:
             return True
-        # Client can only view their own orders
+        # [OKS] Client premission for cancelation and view 
         if user.role == 'client':
-            return obj.client.user == user and request.method in permissions.SAFE_METHODS
+                is_owner = obj.client.user == user
+                if request.method in permissions.SAFE_METHODS:
+                    return is_owner
+                if request.method in ['PATCH', 'PUT']:
+                    if is_owner and obj.order_status == 'pending':
+                        return set(request.data.keys()).issubset({'order_status'}) and request.data.get('order_status') == 'cancelled'
+                return False
+
         # Pharmacist can view orders for their stores, and update status for their stores' orders
         if user.role == 'pharmacist':
             if obj.store and obj.store.owner.user == user:
