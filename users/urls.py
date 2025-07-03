@@ -13,7 +13,7 @@ urlpatterns = [
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verify-email/<str:token>/', verify_email, name='verify-email'),
     path('client/profile/', ClientViewprofile.as_view(), name='client-profile'),
-    path('me/', get_logged_in_user, name='get-logged-in-user'),
+    # path('me/', get_logged_in_user, name='get-logged-in-user'),
 
     # [SENU]: add endpoint to get the current user, pharma, client
     path('me/pharmacist/', get_logged_in_pharmacist, name='get-logged-in-pharmacist'),

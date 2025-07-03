@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from orders.urls import order_router, cart_router  
+from orders.urls import order_router  
 
 urlpatterns = [
     path('admin/', admin.site.urls),
