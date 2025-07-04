@@ -235,19 +235,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             
             medicine.stock -= quantity
             medicine.save()
-
     def perform_update(self, serializer):
         user = self.request.user
         instance = self.get_object()
+        old_status = instance.order_status
 
         # [SARA]: Pharmacist can only update status for their store's orders, admin can update all
         if user.role == 'pharmacist':
             allowed_fields = {'order_status'}
             if not set(self.request.data.keys()).issubset(allowed_fields):
                 raise PermissionError('Pharmacists can only update order status.')
-            
 
-       # [OKS]  Clients can cancel only if order is still pending
+        # [OKS] Clients can cancel only if order is still pending
         if user.role == 'client':
             requested_status = self.request.data.get('order_status')
             if requested_status != 'cancelled':
@@ -256,7 +255,92 @@ class OrderViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied("You can only cancel orders that are still pending.")
 
         serializer.save()
+        
+        # Get the updated instance
+        updated_instance = self.get_object()
+        new_status = updated_instance.order_status
+        
+        # Only send notification if status actually changed
+        if old_status != new_status:
+            self._send_status_update_notification(updated_instance, old_status, new_status)
 
+    def _send_status_update_notification(self, order, old_status, new_status):
+        """Helper method to send notifications on status changes"""
+        notification_data = {
+            'order': order,
+            'old_status': old_status,
+            'new_status': new_status,
+            'shipping_cost': order.shipping_cost,
+            'tax': order.tax,
+            'total_with_fees': order.total_with_fees
+        }
+        
+        # Send to client
+        send_notification(
+            user=order.client.user,
+            message=f"Order #{order.id} status changed from {old_status} to {new_status}",
+            notification_type='order_update',
+            send_email=True,
+            email_subject=f"Order #{order.id} Status Update",
+            email_template='emails/order_status_update.html',
+            email_context=notification_data
+        )
+        
+        # Also notify pharmacist if status was changed by admin/client
+        if order.store and order.store.owner:
+            send_notification(
+                user=order.store.owner.user,
+                message=f"Order #{order.id} status changed to {new_status}",
+                notification_type='order_update',
+                send_email=True,
+                email_subject=f"Order #{order.id} Status Update",
+                email_template='emails/pharmacist_order_update.html',
+                email_context=notification_data
+            )
+
+    # [OKS] Custom action to update order status
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def update_status(self, request, pk=None):
+        order = self.get_object()
+        old_status = order.order_status
+        new_status = request.data.get('status')
+        
+        # Validate status transition
+        valid_statuses = ['paid', 'shipped', 'delivered', 'cancelled']
+        if new_status not in valid_statuses:
+            return Response(
+                {'error': f'Invalid status. Allowed: {", ".join(valid_statuses)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # [OKS] Special validation for paid status
+        if new_status == 'paid':
+            if order.payment_method != 'card':
+                return Response(
+                    {'error': 'Only card payments can be marked as paid directly'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if order.order_status == 'paid':
+                return Response(
+                    {'error': 'Order is already paid'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # [OKS] Update status for the order
+        order.order_status = new_status
+        order.save()
+        
+        # Send notifications
+        self._send_status_update_notification(order, old_status, new_status)
+        
+        return Response({
+            'status': 'success',
+            'order_id': order.id,
+            'new_status': order.order_status,
+            'shipping_cost': order.shipping_cost,
+            'tax': order.tax,
+            'total_with_fees': order.total_with_fees
+        })
     # [OKS] Custom action to update order status
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def update_status(self, request, pk=None):
@@ -312,6 +396,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             email_template='emails/order_status_update.html',
             email_context=notification_data
         )
+        
         return Response({
             'status': 'success',
             'order_id': order.id,
