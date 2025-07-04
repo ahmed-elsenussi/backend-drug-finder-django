@@ -38,9 +38,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)  # Required for admin access
     # this is for django admin and auth
-    role = models.CharField(max_length=10, choices=[
+    role = models.CharField(max_length=15, choices=[
         ('guest', 'Guest'),('client', 'Client'),
-        ('pharmacist', 'Pharmacist'),('admin', 'Admin')
+        ('pharmacist', 'Pharmacist'),('admin', 'Admin'),
+        ('delivery', 'Delivery')
     ], default='guest')
     auth_provider = models.CharField(
         max_length=20,
@@ -133,6 +134,25 @@ class Pharmacist(models.Model):
     # [SENU]: add has store for store form profile page 
     has_store = models.BooleanField(default=False)
 
+
+    def __str__(self):
+        return self.user.name
+
+#[AMS] DELIVERY MODEL======================================================
+
+class Delivery(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True)
+    image_profile = models.ImageField(upload_to='delivery/profile/', null=True, blank=True)
+    delivery_license = models.ImageField(upload_to='delivery/license/')
+    delivery_bio = models.TextField(max_length=255, blank=True, null=True, default='delivery bio...')
+    license_status = models.CharField(max_length=10,choices=STATUS_CHOICES,default='pending')
+    reject_message = models.TextField(blank=True,null=True, default='revise and send your delivery license again please')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_latitude = models.FloatField(null=True, blank=True)
+    last_longitude = models.FloatField(null=True, blank=True)
+    default_latitude = models.FloatField(null=True, blank=True)
+    default_longitude = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return self.user.name

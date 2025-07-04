@@ -1,4 +1,3 @@
-
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +18,7 @@ from notifications.utils import send_notification
 from .filters import OrderFilter
 from rest_framework.pagination import PageNumberPagination
 import decimal
+from users.models import Delivery
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -50,7 +50,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             queryset = Order.objects.filter(store__owner__user=user).order_by('-timestamp')
         elif user.role == 'client':
             queryset = Order.objects.filter(client__user=user).order_by('-timestamp')
-            
+        elif user.role == 'delivery':
+            # For now, show all unclaimed orders with allowed status
+            # Location filtering can be added later with proper database queries
+            allowed_status = ['pending', 'paid', 'on_process']
+            queryset = Order.objects.filter(
+                delivery__isnull=True, 
+                order_status__in=allowed_status
+            ).order_by('-timestamp')
         return queryset
 
     # [OKS] change name to create
@@ -343,4 +350,87 @@ class OrderViewSet(viewsets.ModelViewSet):
             'tax': order.tax,
             'total_with_fees': order.total_with_fees
         })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def claim(self, request, pk=None):
+        order = self.get_object()
+        user = request.user
+        # Only delivery users can claim
+        if getattr(user, 'role', None) != 'delivery':
+            return Response({'error': 'Only delivery users can claim orders.'}, status=403)
+        if order.delivery is not None:
+            return Response({'error': 'Order already claimed by another delivery.'}, status=400)
+        if order.order_status not in ['pending', 'paid', 'on_process']:
+            return Response({'error': 'Order cannot be claimed in its current status.'}, status=400)
+        # Assign delivery
+        delivery_profile = getattr(user, 'delivery', None)
+        if not delivery_profile:
+            return Response({'error': 'No delivery profile found.'}, status=400)
+        order.delivery = delivery_profile
+        order.order_status = 'on_process'
+        order.save()
+        # Notify client and pharmacist
+        send_notification(
+            user=order.client.user,
+            message=f"Order #{order.id} has been picked up by delivery partner {user.name}",
+            notification_type='order_update',
+            data={'order_id': order.id, 'delivery_name': user.name}
+        )
+        if order.store and order.store.owner:
+            send_notification(
+                user=order.store.owner.user,
+                message=f"Order #{order.id} has been claimed by delivery partner {user.name}",
+                notification_type='order_update',
+                data={'order_id': order.id, 'delivery_name': user.name}
+            )
+        return Response({'status': 'Order claimed successfully', 'order_id': order.id})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def finish(self, request, pk=None):
+        order = self.get_object()
+        user = request.user
+        # Only assigned delivery can finish
+        if getattr(user, 'role', None) != 'delivery':
+            return Response({'error': 'Only delivery users can finish orders.'}, status=403)
+        delivery_profile = getattr(user, 'delivery', None)
+        if not delivery_profile or order.delivery_id != delivery_profile.user_id:
+            return Response({'error': 'You are not assigned to this order.'}, status=403)
+        if order.order_status != 'on_process':
+            return Response({'error': 'Order cannot be finished in its current status.'}, status=400)
+        order.order_status = 'delivered'
+        order.save()
+        # Notify client and pharmacist
+        send_notification(
+            user=order.client.user,
+            message=f"Order #{order.id} has been delivered successfully!",
+            notification_type='order_update',
+            data={'order_id': order.id, 'status': 'delivered'}
+        )
+        if order.store and order.store.owner:
+            send_notification(
+                user=order.store.owner.user,
+                message=f"Order #{order.id} has been delivered by {user.name}",
+                notification_type='order_update',
+                data={'order_id': order.id, 'delivery_name': user.name, 'status': 'delivered'}
+            )
+        return Response({'status': 'Order marked as delivered', 'order_id': order.id})
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def assigned(self, request):
+        user = request.user
+        if getattr(user, 'role', None) != 'delivery':
+            return Response({'error': 'Only delivery users can access assigned orders.'}, status=403)
+        
+        delivery_profile = getattr(user, 'delivery', None)
+        if not delivery_profile:
+            return Response({'error': 'No delivery profile found.'}, status=400)
+        
+        queryset = Order.objects.filter(delivery=delivery_profile).order_by('-timestamp')
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 

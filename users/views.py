@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from .models import User, Client, Pharmacist
-from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer
+from .models import User, Client, Pharmacist, Delivery
+from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer, DeliverySerializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from inventory.permissions import IsAdminOrReadOnly
 from rest_framework.response import Response
@@ -83,6 +83,34 @@ class UserViewSet(viewsets.ModelViewSet):
                     if image_profile:
                         pharmacist.image_profile = image_profile
                     pharmacist.save()
+            
+            elif role == 'delivery':
+                image_profile = request.FILES.get('image_profile')
+                delivery_license = request.FILES.get('image_license')
+                if not delivery_license:
+                    user.delete()  # Rollback user creation
+                    print('no delivery_license')
+                    return Response(
+                        {
+                            'error': 'you must upload delivery license image'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if not image_profile:
+                    image_profile = ''
+                delivery, created = Delivery.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'delivery_license': delivery_license,
+                        'image_profile': image_profile
+                    }
+                )
+                if not created and (delivery_license or image_profile):
+                    if delivery_license:
+                        delivery.delivery_license = delivery_license
+                    if image_profile:
+                        delivery.image_profile = image_profile
+                    delivery.save()
             
             elif role == 'client':
                 image_profile = request.FILES.get('image_profile')
@@ -470,5 +498,25 @@ def get_current_user_profile(request):
 #         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 #     except Exception as e:
 #         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# DELIVERY VIEWSET
+class DeliveryViewSet(viewsets.ModelViewSet):
+    queryset = Delivery.objects.all()
+    serializer_class = DeliverySerializers
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        old_license_status = instance.license_status
+        new_license_status = request.data.get('license_status')
+        self.perform_update(serializer)
+        # Optionally: send notification if status changes
+        return Response(serializer.data)
 
 

@@ -1,6 +1,6 @@
 # users/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet, CustomTokenObtainPairView, verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist, ClientViewprofile, get_current_user_profile,GoogleLoginView
+from .views import UserViewSet, CustomTokenObtainPairView, verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist, ClientViewprofile, get_current_user_profile,GoogleLoginView, DeliveryViewSet
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -8,6 +8,7 @@ router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'pharmacists', PharmacistViewSet, basename='pharmacist')
 router.register(r'clients', ClientViewSet, basename='client')
+router.register(r'deliveries', DeliveryViewSet, basename='delivery')
 urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

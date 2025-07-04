@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Client, Pharmacist
+from .models import User, Client, Pharmacist, Delivery
 from medical_stores.models import MedicalStore
 from medical_stores.serializers import MedicalStoreSerializer
 
@@ -214,3 +214,36 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         if user.role == 'pharmacist' and hasattr(user, 'pharmacist'):
             return request.build_absolute_uri(user.pharmacist.image_profile.url) if user.pharmacist.image_profile else None
         return None  # admin has no image
+
+# =================== DELIVERY SERIALIZER =======================
+class DeliverySerializers(serializers.ModelSerializer):
+    name = serializers.CharField(source='user.name', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    id = serializers.IntegerField(source='user.id', read_only=True)
+
+    class Meta:
+        model = Delivery
+        fields = [
+            'id',
+            'user_id',
+            'name',
+            'image_profile',
+            'delivery_license',
+            'license_status',
+            'reject_message',
+            'delivery_bio',
+            'last_latitude',
+            'last_longitude',
+            'default_latitude',
+            'default_longitude',
+        ]
+        extra_kwargs = {
+            'delivery_license': {'required': False}  # Make field optional for updates
+        }
+
+    def update(self, instance, validated_data):
+        if 'delivery_license' in self.context['request'].FILES:
+            instance.delivery_license = validated_data.get('delivery_license', instance.delivery_license)
+        instance.license_status = validated_data.get('license_status', instance.license_status)
+        instance.save()
+        return instance
