@@ -89,7 +89,9 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
         if not medicine_name:
             return Response({'error': 'medicine_name parameter is required'}, status=400)
-          
+        #[OKS] ignore pending pharmacist -store
+        queryset = self.get_queryset()
+  
          #[OKS] not case insensitive search 
         matched_medicines = Medicine.objects.filter(
         Q(brand_name__iexact=medicine_name) | Q(generic_name__iexact=medicine_name)
@@ -100,7 +102,7 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
             store_id = med.store.id  
             store_to_medicines.setdefault(store_id, []).append(med)
         store_ids = list(store_to_medicines.keys())
-        stores = MedicalStore.objects.filter(id__in=store_ids)
+        stores = queryset.filter(id__in=store_ids) 
         serializer = self.get_serializer(
          stores, many=True, 
          context={'request': request, 'matched_medicines': store_to_medicines}
