@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, generics
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import MedicalDevice, Medicine
 from .serializers import MedicalDeviceSerializer, MedicineSerializer
@@ -101,6 +101,30 @@ class MedicineViewSet(viewsets.ModelViewSet):
             return queryset.filter(store__owner__license_status='approved')
         return Medicine.objects.none()
 
+    def get_object(self):
+        """
+        Override to allow accessing soft-deleted medicines for update actions.
+        """
+        user = self.request.user
+        queryset = Medicine.objects.select_related('store')
+        # For update actions, allow pharmacists to access soft-deleted medicines in their store
+        if self.action == 'update' or self.action == 'partial_update':
+            if user.role == 'pharmacist':
+                queryset = queryset.filter(store__owner__user=user)
+        else:
+            # Default behavior: exclude soft-deleted medicines
+            queryset = queryset.filter(is_deleted=False)
+            if user.role == 'pharmacist':
+                queryset = queryset.filter(store__owner__user=user)
+            elif user.role == 'client':
+                queryset = queryset.filter(store__owner__license_status='approved')
+            elif not (user.is_staff or user.is_superuser or getattr(user, 'role', None) == 'admin'):
+                queryset = Medicine.objects.none()
+
+        obj = generics.get_object_or_404(queryset, pk=self.kwargs.get('pk'))
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     def perform_create(self, serializer):
         user = self.request.user
         # [SENU]:DEBUG
@@ -122,6 +146,8 @@ class MedicineViewSet(viewsets.ModelViewSet):
             store = serializer.validated_data.get('store', getattr(self.get_object(), 'store', None))
             if not store or store.owner.user != user:
                 raise PermissionError('You can only update medicines in your own store.')
+        # [SENU]:DEBUG
+        print(f"Updating Medicine - User: {user}, Data: {serializer.validated_data}")
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -132,6 +158,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
                 raise PermissionError('You can only delete medicines from your own store.')
         # [SENU]: Implement soft delete by setting is_deleted to True
         instance.is_deleted = True
+        instance.stock = 0
         instance.save()
 
     # FOR ADMIN YA SARAAAAAAAAAAAAAAAAAAA
@@ -158,7 +185,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
         """Endpoint to retrieve soft-deleted medicines for a specific store"""
         store_id = request.query_params.get('store_id')
         print(f"DEBUG: Reached deleted_by_store endpoint, store_id: {store_id}")  # [SENU]: Debug
-        queryset = Medicine.objects.select_related('store').filter(is_deleted=True)
+        queryset = Medicine.objects.select_related('store').filter(is_deleted=True).order_by(Lower('brand_name'))
         
         if store_id:
             try:
@@ -206,6 +233,3 @@ class MedicineViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
-
-    
