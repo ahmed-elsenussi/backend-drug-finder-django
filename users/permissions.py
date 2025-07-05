@@ -18,3 +18,5 @@ class IsSelfPharmacistOrAdmin(BasePermission):
 
         # Pharmacist can only update their own profile
         return hasattr(user, 'pharmacist') and obj.user == user
+
+

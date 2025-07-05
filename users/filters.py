@@ -4,8 +4,12 @@ import django_filters
 from .models import Pharmacist
 
 class PharmacistFilter(django_filters.FilterSet):
-    is_approved = django_filters.BooleanFilter(field_name='is_approved')
+    license_status = django_filters.ChoiceFilter(
+        field_name='license_status',
+        choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')],
+        empty_label='All'
+    )
 
     class Meta:
         model = Pharmacist
-        fields = ['is_approved']
+        fields = ['license_status']

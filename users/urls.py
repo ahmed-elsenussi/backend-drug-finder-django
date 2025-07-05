@@ -3,6 +3,9 @@ from rest_framework.routers import DefaultRouter
 from .views import UserViewSet, CustomTokenObtainPairView, verify_email, PharmacistViewSet, ClientViewSet, get_logged_in_user, get_logged_in_pharmacist, ClientViewprofile, get_current_user_profile,GoogleLoginView
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from . import views
+
+
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -22,6 +25,11 @@ urlpatterns = [
     path('me/', get_current_user_profile, name='get-current-user'),
     
     path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
+
+
+    # [SENU]: add endpoint dedicated for teh admin to get the pharamcists
+    path('all-pharmacists/', views.get_all_pharmacists, name='get_all_pharmacists'),
+
 
     # [AMS] --> postponed for future 
     # path('forget-password/', forget_password, name='forget-password'),

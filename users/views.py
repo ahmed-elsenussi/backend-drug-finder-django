@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from .models import User, Client, Pharmacist
 from .serializers import UserSerializers, ClientSerializers, PharmacistSerializers, CurrentUserSerializer
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission  # NEW: Added BasePermission
 from inventory.permissions import IsAdminOrReadOnly
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -32,6 +32,25 @@ from .serializers import PharmacistSerializers
 # [SENU]
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import PharmacistFilter
+
+# NEW PERMISSION FOR ADMIN-ONLY ACCESS
+class IsAdmin(BasePermission):
+    """
+    Allow only admin users (is_staff or role='admin') to access the endpoint.
+    """
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.role == 'admin')
+
+# NEW ENDPOINT FOR ALL PHARMACISTS (ADMIN-ONLY)
+@api_view(['GET'])
+@permission_classes([IsAdmin])
+def get_all_pharmacists(request):
+    """
+    Endpoint for admins to retrieve all pharmacists without pagination or filters.
+    """
+    pharmacists = Pharmacist.objects.select_related('user').filter(user__role='pharmacist')
+    serializer = PharmacistSerializers(pharmacists, many=True, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 # USER VIEWSET
 class UserViewSet(viewsets.ModelViewSet):
@@ -128,8 +147,6 @@ class ClientViewprofile(APIView):
             return Response(serializer.data)
         except Client.DoesNotExist:
             return Response({'error': 'Client profile not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
 
 # PHARMACIST VIEWSET
 class PharmacistViewSet(viewsets.ModelViewSet):
@@ -336,7 +353,6 @@ def get_logged_in_user(request):
         'role': user.role
     })
 
-
 # [SENU]: get the pharmacist dat
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -347,9 +363,6 @@ def get_logged_in_pharmacist(request):
         return Response(serializer.data)
     except Pharmacist.DoesNotExist:
         return Response({'error': 'Pharmacist profile not found'}, status=404)
-
-
-# ============================================
 
 # [SENU]: HANDLE THE ERROR LOGIC OF NOT ADDING THE IMAGE IN THE PARENT USER TABLE
 @api_view(['GET', 'PATCH'])
@@ -367,108 +380,3 @@ def get_current_user_profile(request):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-#====================================
-# from config import settings
-# import uuid
-# from django.core.mail import send_mail
-# from rest_framework import status
-# import logging
-# from django.utils import timezone
-# from datetime import timedelta
-# from django.core.exceptions import ValidationError
-# from django.contrib.auth.password_validation import validate_password
-# from django.template.loader import render_to_string
-# from django.utils.html import strip_tags
-# from django.core.mail import EmailMultiAlternatives
-
-# def send_password_reset_email(email, context):
-#     """Helper function to send password reset email"""
-#     html_message = render_to_string('emails/password_reset.html', context)
-#     plain_message = strip_tags(render_to_string('emails/password_reset.txt', context))
-    
-#     email = EmailMultiAlternatives(
-#         subject=f"{context['site_name']} - Password Reset",
-#         body=plain_message,
-#         from_email=settings.DEFAULT_FROM_EMAIL,
-#         to=[email],
-#         reply_to=[context['support_email']]
-#     )
-#     email.attach_alternative(html_message, "text/html")
-#     email.send()
-
-# logger = logging.getLogger(__name__)
-
-# @api_view(['POST'])
-# def forget_password (request):
-#     email = request.data.get('email')
-#     if not email:
-#         return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
-#     try:
-#         user = User.objects.get(email=email)
-#         if not user.is_active:
-#             logger.warning(f"Inactive user attempted password reset: {email}")
-#             return Response(
-#                 {'error': 'Account is not active. Please contact support.'},
-#                 status=status.HTTP_403_FORBIDDEN
-#             )
-
-#         # Generate token with expiration (24 hours)
-#         user.email_verification_token = str(uuid.uuid4())
-#         user.save()
-
-#         # Construct reset link
-#         reset_url = f"http://localhost:8000/reset-password/{user.email_verification_token}/"
-        
-#         # HTML email with template
-#         context = {
-#             'user': user,
-#             'reset_url': reset_url,
-#             'support_email': settings.SUPPORT_EMAIL,
-#             'site_name': settings.SITE_NAME
-#         }
-
-#         try:
-#             send_password_reset_email(user.email, context)
-#             logger.info(f"Password reset email sent to {email}")
-#             return Response(
-#                 {'message': 'Password reset link has been sent to your email'},
-#                 status=status.HTTP_200_OK
-#             )
-#         except Exception as e:
-#             logger.error(f"Email sending failed to {email}: {str(e)}")
-#             return Response(
-#                 {'error': 'Failed to send reset email. Please try again later.'},
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
-#     except User.DoesNotExist:
-#         # Generic response for security
-#         logger.info(f"Password reset attempt for non-existent email: {email}")
-#         return Response(
-#             {'message': 'If this email exists in our system, you will receive a reset link'},
-#             status=status.HTTP_200_OK
-#         )
-
-            
-# def validate_reset_password (request, token):        
-#     try:
-#         user = User.objects.get(email_verification_token=token)
-#         if user.is_active:
-#             new_password = request.data['new_password']
-#             confirm_password = request.data['confirm_password']
-#             user.set_password(new_password)
-#             user.email_verification_token = None
-#             user.save()
-#             return Response({'message': 'Password reset successfully'}, status=status.HTTP_200_OK)
-#         else:
-#             return Response({'error': 'User is not active'}, status=status.HTTP_400_BAD_REQUEST)
-#     except User.DoesNotExist:
-        
-#         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-#     except Exception as e:
-#         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
