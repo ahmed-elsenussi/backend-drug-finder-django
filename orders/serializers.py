@@ -25,6 +25,7 @@ class OrderSerializer(serializers.ModelSerializer):
         results = []
         for item in obj.items:
             item_id = item.get('item_id')
+            price = item.get('price')
             quantity = item.get('ordered_quantity')
 
             try:
@@ -36,7 +37,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     image_url = medicine.image.url if medicine.image else None
                 results.append({
                     "name": medicine.brand_name,
-                    "price": medicine.price,
+                    "price": price,
                     "image": image_url,
                     "quantity": quantity
                 })
